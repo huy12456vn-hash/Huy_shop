@@ -1,32 +1,68 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import '../../services/auth_services.dart';
+import '../../services/preference_service.dart';
+import '../mainpage.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
 
   @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  bool _isChecking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRememberedLogin();
+  }
+
+  Future<void> _checkRememberedLogin() async {
+    final shouldAutoEnter = await PreferenceService.isLogin() && AuthService.isLogin();
+
+    if (!mounted) return;
+
+    if (shouldAutoEnter) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainPage()),
+      );
+      return;
+    }
+
+    setState(() {
+      _isChecking = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isChecking) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-
           Image.network(
             "https://images.unsplash.com/photo-1529139574466-a303027c1d8b",
             fit: BoxFit.cover,
           ),
-
           Container(
             color: Colors.black.withOpacity(0.4),
           ),
-
           Padding(
             padding: const EdgeInsets.all(30),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 const Text(
                   "GUCCI",
                   style: TextStyle(
@@ -36,9 +72,7 @@ class WelcomePage extends StatelessWidget {
                     letterSpacing: 8,
                   ),
                 ),
-
                 const SizedBox(height: 15),
-
                 const Text(
                   "Luxury Fashion Collection",
                   style: TextStyle(
@@ -46,9 +80,7 @@ class WelcomePage extends StatelessWidget {
                     fontSize: 18,
                   ),
                 ),
-
                 const SizedBox(height: 30),
-
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -73,7 +105,6 @@ class WelcomePage extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
               ],
             ),
