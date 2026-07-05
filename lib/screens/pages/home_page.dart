@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../widgets/banner_widget.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+// Removed phosphor_flutter; using built-in Material icons instead.
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
@@ -22,8 +22,8 @@ class HomePage extends StatelessWidget {
   },
   {
     'label': 'Giày dép',
-    'icon':  PhosphorIcon(
-      PhosphorIcons.sneaker(),
+    'icon': const Icon(
+      Icons.directions_run,
       color: Colors.black87,
       size: 24,
     ),
