@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'register_screen.dart';
 
+import 'forgot_password_screen.dart';
+
 import '../../services/preference_service.dart';
 
 import '../mainpage.dart';
@@ -241,22 +243,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
 
                       const Text(
-                        "Ghi nhớ đăng nhập",
+                        "Remember me",
 
                         style: TextStyle(color: Colors.black87),
                       ),
                     ],
                   ),
-
                   Align(
                     alignment: Alignment.centerRight,
-
                     child: TextButton(
-                      onPressed: () {},
-
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
                       child: const Text(
                         "Forgot Password?",
-
                         style: TextStyle(color: Color(0xFF1A472A)),
                       ),
                     ),

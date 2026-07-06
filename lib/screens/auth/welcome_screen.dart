@@ -21,7 +21,8 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Future<void> _checkRememberedLogin() async {
-    final shouldAutoEnter = await PreferenceService.isLogin() && AuthService.isLogin();
+    final shouldAutoEnter =
+        await PreferenceService.isLogin() && AuthService.isLogin();
 
     if (!mounted) return;
 
@@ -41,9 +42,7 @@ class _WelcomePageState extends State<WelcomePage> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -54,9 +53,7 @@ class _WelcomePageState extends State<WelcomePage> {
             "https://images.unsplash.com/photo-1529139574466-a303027c1d8b",
             fit: BoxFit.cover,
           ),
-          Container(
-            color: Colors.black.withOpacity(0.4),
-          ),
+          Container(color: Colors.black.withOpacity(0.4)),
           Padding(
             padding: const EdgeInsets.all(30),
             child: Column(
@@ -75,10 +72,7 @@ class _WelcomePageState extends State<WelcomePage> {
                 const SizedBox(height: 15),
                 const Text(
                   "Luxury Fashion Collection",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
                 ),
                 const SizedBox(height: 30),
                 SizedBox(
@@ -91,17 +85,12 @@ class _WelcomePageState extends State<WelcomePage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
                       );
                     },
                     child: const Text(
-                      "KHÁM PHÁ NGAY",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
+                      "EXPLORE",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
                 ),
