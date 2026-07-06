@@ -12,11 +12,12 @@ class AuthService {
   /// ============================
   static Future<String?> register(UserModel user) async {
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: user.email,
-        password: user.password,
-      );
-      
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: user.email,
+            password: user.password,
+          );
+
       // Save user info to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'fullName': user.fullName,
@@ -31,7 +32,8 @@ class AuthService {
       print("FirebaseAuthException: ${e.code} - ${e.message}");
       if (e.code == 'weak-password') return 'Mật khẩu quá yếu.';
       if (e.code == 'email-already-in-use') return 'Email đã được sử dụng.';
-      if (e.code == 'operation-not-allowed') return 'Bạn chưa bật phương thức đăng nhập bằng Email/Password trong Firebase Console.';
+      if (e.code == 'operation-not-allowed')
+        return 'Bạn chưa bật phương thức đăng nhập bằng Email/Password trong Firebase Console.';
       return "Lỗi Auth (${e.code}): ${e.message}";
     } catch (e) {
       print("Lỗi hệ thống: $e");
@@ -53,7 +55,10 @@ class AuthService {
 
       return null; // Thành công
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'invalid-email' || e.code == 'invalid-credential') return 'Sai tài khoản hoặc mật khẩu.';
+      if (e.code == 'user-not-found' ||
+          e.code == 'invalid-email' ||
+          e.code == 'invalid-credential')
+        return 'Sai tài khoản hoặc mật khẩu.';
       if (e.code == 'wrong-password') return 'Sai mật khẩu.';
       return e.message;
     } catch (e) {
@@ -68,7 +73,10 @@ class AuthService {
     User? user = _auth.currentUser;
     if (user != null) {
       try {
-        DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+        DocumentSnapshot doc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
           return UserModel(
@@ -115,5 +123,22 @@ class AuthService {
   static Future<bool> isExistEmail(String email) async {
     // FirebaseAuth sẽ tự báo lỗi nếu email trùng trong lúc register
     return false;
+  }
+
+  /// ============================
+  /// QUÊN MẬT KHẨU
+  /// ============================
+  static Future<String?> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found')
+        return 'Không tìm thấy tài khoản với email này.';
+      if (e.code == 'invalid-email') return 'Email không hợp lệ.';
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
   }
 }
