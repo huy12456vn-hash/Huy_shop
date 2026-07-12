@@ -17,8 +17,6 @@ class AuthService {
             email: user.email,
             password: user.password,
           );
-
-      // Save user info to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'fullName': user.fullName,
         'email': user.email,
@@ -27,17 +25,17 @@ class AuthService {
         'gender': user.gender,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      return null; // Thành công
+      return null; // Success
     } on FirebaseAuthException catch (e) {
       print("FirebaseAuthException: ${e.code} - ${e.message}");
-      if (e.code == 'weak-password') return 'Mật khẩu quá yếu.';
-      if (e.code == 'email-already-in-use') return 'Email đã được sử dụng.';
+      if (e.code == 'weak-password') return 'Password is too weak.';
+      if (e.code == 'email-already-in-use') return 'Email is already in use.';
       if (e.code == 'operation-not-allowed')
-        return 'Bạn chưa bật phương thức đăng nhập bằng Email/Password trong Firebase Console.';
-      return "Lỗi Auth (${e.code}): ${e.message}";
+        return 'Email/Password sign-in is not enabled in Firebase Console.';
+      return "Auth error (${e.code}): ${e.message}";
     } catch (e) {
-      print("Lỗi hệ thống: $e");
-      return "Lỗi hệ thống: $e";
+      print("System error: $e");
+      return "System error: $e";
     }
   }
 
@@ -53,13 +51,13 @@ class AuthService {
       // Lưu lịch sử đăng nhập local
       await PreferenceService.addHistory(email);
 
-      return null; // Thành công
+      return null; // Success
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' ||
           e.code == 'invalid-email' ||
           e.code == 'invalid-credential')
-        return 'Sai tài khoản hoặc mật khẩu.';
-      if (e.code == 'wrong-password') return 'Sai mật khẩu.';
+        return 'Incorrect email or password.';
+      if (e.code == 'wrong-password') return 'Incorrect password.';
       return e.message;
     } catch (e) {
       return e.toString();
@@ -89,14 +87,14 @@ class AuthService {
           );
         }
       } catch (e) {
-        print("Lỗi lấy dữ liệu user: $e");
+        print("Error fetching user data: $e");
       }
     }
     return null;
   }
 
   /// ============================
-  /// KIỂM TRA ĐĂNG NHẬP
+  /// CHECK LOGIN STATUS
   /// ============================
   static bool isLogin() {
     return _auth.currentUser != null;
@@ -111,14 +109,14 @@ class AuthService {
   }
 
   /// ============================
-  /// LỊCH SỬ ĐĂNG NHẬP
+  /// LOGIN HISTORY
   /// ============================
   static Future<List<String>> getHistory() async {
     return await PreferenceService.getHistory();
   }
 
   /// ============================
-  /// KIỂM TRA EMAIL ĐÃ TỒN TẠI
+  /// CHECK IF EMAIL EXISTS
   /// ============================
   static Future<bool> isExistEmail(String email) async {
     // FirebaseAuth sẽ tự báo lỗi nếu email trùng trong lúc register
@@ -126,7 +124,7 @@ class AuthService {
   }
 
   /// ============================
-  /// QUÊN MẬT KHẨU
+  /// FORGOT PASSWORD
   /// ============================
   static Future<String?> sendPasswordResetEmail(String email) async {
     try {
@@ -134,8 +132,8 @@ class AuthService {
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found')
-        return 'Không tìm thấy tài khoản với email này.';
-      if (e.code == 'invalid-email') return 'Email không hợp lệ.';
+        return 'No account was found for this email.';
+      if (e.code == 'invalid-email') return 'Invalid email address.';
       return e.message;
     } catch (e) {
       return e.toString();

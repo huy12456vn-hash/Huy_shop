@@ -25,15 +25,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_nameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
-      _showMessage("Vui lòng nhập đầy đủ thông tin");
+      _showMessage("Please fill in all required information");
       return;
     }
     if (_passwordController.text != _confirmController.text) {
-      _showMessage("Mật khẩu xác nhận không khớp");
+      _showMessage("Passwords do not match");
       return;
     }
     if (!agreeTerms) {
-      _showMessage("Bạn cần đồng ý Điều khoản & Điều kiện");
+      _showMessage("You must agree to the Terms & Conditions");
       return;
     }
 
@@ -53,20 +53,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       String message;
       switch (e.code) {
         case 'email-already-in-use':
-          message = "Email đã được sử dụng";
+          message = "This email is already in use";
           break;
         case 'invalid-email':
-          message = "Email không hợp lệ";
+          message = "Invalid email address";
           break;
         case 'weak-password':
-          message = "Mật khẩu quá yếu";
+          message = "Password is too weak";
           break;
         default:
-          message = "Đăng ký thất bại: ${e.message}";
+          message = "Registration failed: ${e.message}";
       }
       _showMessage(message);
     } catch (e) {
-      _showMessage("Đã xảy ra lỗi: $e");
+      _showMessage("An error occurred: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -284,7 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text(
-                      "Already have an account? Login",
+                      "Already have an account? Log in",
                       style: TextStyle(
                         color: Color(0xFF1A472A),
                         fontWeight: FontWeight.bold,

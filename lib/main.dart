@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'screens/mainpage.dart';
+import 'screens/admin/admin_panel_screen.dart';
 import 'services/auth_services.dart';
 import 'services/preference_service.dart';
+import 'services/admin_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +24,7 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   bool _isReady = false;
   bool _showHome = false;
+  Widget _homeScreen = const WelcomePage();
 
   @override
   void initState() {
@@ -35,8 +38,20 @@ class _MainAppState extends State<MainApp> {
 
     if (!mounted) return;
 
+    if (rememberLogin && isLoggedIn) {
+      final isAdmin = await AdminService.isCurrentUserAdmin();
+      if (!mounted) return;
+      setState(() {
+        _showHome = true;
+        _homeScreen = isAdmin ? const AdminPanelScreen() : const MainPage();
+        _isReady = true;
+      });
+      return;
+    }
+
     setState(() {
-      _showHome = rememberLogin && isLoggedIn;
+      _showHome = false;
+      _homeScreen = const WelcomePage();
       _isReady = true;
     });
   }
@@ -51,6 +66,6 @@ class _MainAppState extends State<MainApp> {
       );
     }
 
-    return MaterialApp(home: _showHome ? const MainPage() : const WelcomePage());
+    return MaterialApp(home: _showHome ? _homeScreen : const WelcomePage());
   }
 }

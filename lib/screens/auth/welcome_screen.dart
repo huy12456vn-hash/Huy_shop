@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import '../../services/auth_services.dart';
 import '../../services/preference_service.dart';
+import '../../services/admin_service.dart';
 import '../mainpage.dart';
+import '../admin/admin_panel_screen.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
@@ -27,9 +29,13 @@ class _WelcomePageState extends State<WelcomePage> {
     if (!mounted) return;
 
     if (shouldAutoEnter) {
+      final isAdmin = await AdminService.isCurrentUserAdmin();
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const MainPage()),
+        MaterialPageRoute(
+          builder: (_) => isAdmin ? const AdminPanelScreen() : const MainPage(),
+        ),
       );
       return;
     }
@@ -94,7 +100,7 @@ class _WelcomePageState extends State<WelcomePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 12),
               ],
             ),
           ),

@@ -7,8 +7,10 @@ import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
 import '../../services/preference_service.dart';
+import '../../services/admin_service.dart';
 
 import '../mainpage.dart';
+import '../admin/admin_panel_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
-      _showMessage("Vui lòng nhập đầy đủ email và mật khẩu");
+      _showMessage("Please enter both your email and password");
 
       return;
     }
@@ -41,19 +43,30 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
 
-        password: _passwordController.text.trim(),
+      final error = await AdminService.signIn(
+        email: email,
+        password: password,
       );
 
+      if (error != null) {
+        if (!mounted) return;
+        _showMessage(error);
+        return;
+      }
+
       await PreferenceService.setLogin(_rememberMe);
+
+      final isAdmin = await AdminService.isCurrentUserAdmin();
 
       if (mounted) {
         Navigator.pushReplacement(
           context,
-
-          MaterialPageRoute(builder: (_) => const MainPage()),
+          MaterialPageRoute(
+            builder: (_) => isAdmin ? const AdminPanelScreen() : const MainPage(),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -61,32 +74,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
       switch (e.code) {
         case 'user-not-found':
-          message = "Không tìm thấy tài khoản với email này";
+          message = "No account was found for this email";
 
           break;
 
         case 'wrong-password':
-          message = "Sai mật khẩu";
+          message = "Incorrect password";
 
           break;
 
         case 'invalid-email':
-          message = "Email không hợp lệ";
+          message = "Invalid email address";
 
           break;
 
         case 'invalid-credential':
-          message = "Email hoặc mật khẩu không đúng";
+          message = "The email or password is incorrect";
 
           break;
 
         default:
-          message = "Đăng nhập thất bại: ${e.message}";
+          message = "Login failed: ${e.message}";
       }
 
       _showMessage(message);
     } catch (e) {
-      _showMessage("Đã xảy ra lỗi: $e");
+      _showMessage("An error occurred: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

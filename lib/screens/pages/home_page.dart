@@ -1,5 +1,9 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 import '../../widgets/banner_widget.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // Removed phosphor_flutter; using built-in Material icons instead.
 
 class HomePage extends StatelessWidget {
@@ -13,7 +17,7 @@ class HomePage extends StatelessWidget {
 
   final List<Map<String, dynamic>> categories = [
   {
-    'label': 'Túi xách',
+    'label': 'Handbags',
     'icon': const Icon(
       Icons.shopping_bag_outlined,
       color: Colors.black87,
@@ -21,7 +25,7 @@ class HomePage extends StatelessWidget {
     ),
   },
   {
-    'label': 'Giày dép',
+    'label': 'Shoes',
     'icon': const Icon(
       Icons.directions_run,
       color: Colors.black87,
@@ -29,7 +33,7 @@ class HomePage extends StatelessWidget {
     ),
   },
   {
-    'label': 'Thời trang nữ',
+    'label': 'Women\'s Fashion',
     'icon': const Icon(
       Icons.female,
       color: Colors.black87,
@@ -37,7 +41,7 @@ class HomePage extends StatelessWidget {
     ),
   },
   {
-    'label': 'Thời trang nam',
+    'label': 'Men\'s Fashion',
     'icon': const Icon(
       Icons.male,
       color: Colors.black87,
@@ -45,12 +49,6 @@ class HomePage extends StatelessWidget {
     ),
   },
 ];
-
-  final List<Map<String, String>> products = [
-    {'name': 'Túi đeo vai Ophidia GG', 'price': '59.000.000 đ'},
-    {'name': 'Giày sneaker Ace', 'price': '24.500.000 đ'},
-    {'name': 'Thắt lưng GG Marmont', 'price': '16.800.000 đ'},
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +67,11 @@ class HomePage extends StatelessWidget {
                     const SizedBox(height: 5,),
                     _buildBanner(),
                     const SizedBox(height: 20),
-                    _buildSectionHeader('DANH MỤC NỔI BẬT'),
+                    _buildSectionHeader('FEATURED CATEGORIES'),
                     const SizedBox(height: 14),
                     _buildCategoryList(),
                     const SizedBox(height: 20),
-                    _buildSectionHeader('SẢN PHẨM MỚI'),
+                    _buildSectionHeader('NEW ARRIVALS'),
                     const SizedBox(height: 14),
                     _buildProductList(),
                     const SizedBox(height: 20),
@@ -107,7 +105,7 @@ class HomePage extends StatelessWidget {
           ),
           Row(
             children: const [
-              Text('Xem tất cả', style: TextStyle(fontSize: 12, color: Colors.black54)),
+              Text('View all', style: TextStyle(fontSize: 12, color: Colors.black54)),
               Icon(Icons.chevron_right, size: 16, color: Colors.black54),
             ],
           ),
@@ -151,88 +149,166 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProductList() {
-    return SizedBox(
-      height: 240,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: products.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 14),
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return Container(
-            width: 170,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.04),
-                  blurRadius: 14,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-                  ),
-                  child: const Stack(
+  /// Decode chuỗi base64 lưu trong Firestore ra ảnh. Trả về null nếu
+  /// rỗng hoặc chuỗi không hợp lệ (tránh crash toàn app khi có dữ liệu lỗi).
+  Uint8List? _decodeProductImage(String base64String) {
+    if (base64String.isEmpty) return null;
+    try {
+      return base64Decode(base64String);
+    } catch (_) {
+      return null;
+    }
+  }
+
+Widget _buildProductList() {
+  return SizedBox(
+    height: 290,
+    child: StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection("products")
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text("No products"),
+          );
+        }
+
+        final products = snapshot.data!.docs;
+
+        return ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          separatorBuilder: (_, __) => const SizedBox(width: 14),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final product =
+                products[index].data() as Map<String, dynamic>;
+
+            final imageBase64 = (product["image"] ?? "").toString();
+            final imageBytes = _decodeProductImage(imageBase64);
+            final name = product["name"] ?? "";
+            final price = product["price"] ?? 0;
+
+            return Container(
+              width: 170,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color.fromRGBO(0, 0, 0, 0.05),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  /// IMAGE
+                  Stack(
                     children: [
-                      Positioned(
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
+                        child: imageBytes == null
+                            ? Container(
+                                height: 150,
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: Icon(Icons.image),
+                                ),
+                              )
+                            : Image.memory(
+                                imageBytes,
+                                height: 150,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  height: 150,
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image),
+                                  ),
+                                ),
+                              ),
+                      ),
+
+                      const Positioned(
                         top: 8,
                         right: 8,
-                        child: Icon(Icons.favorite_border, size: 18),
+                        child: Icon(Icons.favorite_border),
                       ),
                     ],
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product['name']!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            product['price']!,
-                            style: const TextStyle(fontSize: 12, color: Colors.black54),
+
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+
+                        Text(
+                          name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: const BoxDecoration(
-                              color: Colors.black,
-                              shape: BoxShape.circle,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+
+                            Expanded(
+                              child: Text(
+                                "${price.toString()} VND",
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ),
-                            child: const Icon(Icons.add, color: Colors.white, size: 16),
-                          ),
-                        ],
-                      ),
-                    ],
+
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.black,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                onPressed: () {},
+                              ),
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildGiftingBanner() {
     return Padding(
@@ -251,7 +327,7 @@ class HomePage extends StatelessWidget {
             Text('GUCCI', style: TextStyle(color: Colors.white70, letterSpacing: 3, fontSize: 12)),
             Text('GIFTING', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             Text(
-              'Những món quà ý nghĩa cho người đặc biệt.',
+              'Meaningful gifts for someone special.',
               style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
             ),
           ],

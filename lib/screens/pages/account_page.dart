@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_services.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key});
@@ -21,10 +23,10 @@ class AccountPage extends StatelessWidget {
     final String initials = user?.email?.substring(0, 2).toUpperCase() ?? 'LV';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7), // Màu kem sang trọng
+      backgroundColor: const Color(0xFFFDFBF7), // Elegant cream background
       appBar: AppBar(
         title: const Text(
-          'Tài khoản',
+          'Account',
           style: TextStyle(
             fontFamily: 'Serif',
             fontWeight: FontWeight.bold,
@@ -42,18 +44,18 @@ class AccountPage extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 30),
-              // Ảnh đại diện
+              // Profile avatar
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: const Color(0xFFC5A059),
                     width: 2,
-                  ), // Viền vàng kim
+                  ), // Golden border
                 ),
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundColor: const Color(0xFF1A472A), // Màu xanh rêu
+                  backgroundColor: const Color(0xFF1A472A), // Forest green
                   child: Text(
                     initials,
                     style: const TextStyle(
@@ -65,9 +67,9 @@ class AccountPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              // Tên người dùng
+              // User name
               const Text(
-                'Người bán hàng',
+                'Salesperson',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -75,32 +77,32 @@ class AccountPage extends StatelessWidget {
                 ),
               ),
               Text(
-                user?.email ?? 'huy@gmail.com',
+                user?.email ?? 'example@email.com',
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 40),
 
-              // Nhóm mục tài khoản
-              _buildSectionTitle('Tài khoản của tôi'),
+              // Account section
+              _buildSectionTitle('My Account'),
               _buildWhiteCard([
-                _buildMenuItem(Icons.shopping_bag_outlined, 'Đơn hàng của tôi'),
-                _buildMenuItem(Icons.location_on_outlined, 'Địa chỉ giao hàng'),
-                _buildMenuItem(Icons.person_outline, 'Thông tin cá nhân'),
-                _buildMenuItem(Icons.payment, 'Phương thức thanh toán'),
+                _buildMenuItem(Icons.shopping_bag_outlined, 'My Orders'),
+                _buildMenuItem(Icons.location_on_outlined, 'Delivery Address'),
+                _buildMenuItem(Icons.person_outline, 'Personal Information'),
+                _buildMenuItem(Icons.payment, 'Payment Methods'),
               ]),
 
               const SizedBox(height: 20),
 
-              // Nhóm cài đặt
-              _buildSectionTitle('Cài đặt'),
+              // Settings section
+              _buildSectionTitle('Settings'),
               _buildWhiteCard([
-                _buildMenuItem(Icons.settings_outlined, 'Cài đặt tài khoản'),
-                _buildMenuItem(Icons.language, 'Ngôn ngữ (Tiếng Việt)'),
+                _buildMenuItem(Icons.settings_outlined, 'Account Settings'),
+                _buildMenuItem(Icons.language, 'Language (English)'),
               ]),
 
               const SizedBox(height: 40),
 
-              // Nút Đăng xuất
+              // Logout button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -113,7 +115,7 @@ class AccountPage extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    'Đăng xuất',
+                    'Log out',
                     style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),

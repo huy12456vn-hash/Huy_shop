@@ -4,6 +4,8 @@ import 'package:shop_gucci/widgets/nav_widget.dart';
 import '../screens/pages/category_page.dart';
 import '../screens/pages/account_page.dart';
 import '../screens/pages/wishlist_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -14,7 +16,7 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int currentIndex = 0;
   late Widget currentBody;
-  String currentTitle = "GU XÌ";
+  String currentTitle = "GUCCI";
   @override
   void initState(){
     super.initState();
@@ -26,7 +28,7 @@ class _MainPageState extends State<MainPage> {
       switch(index){
         case 0:
           currentBody = HomePage();
-          currentTitle = "GU XÌ";
+          currentTitle = "GUCCI";
           break;
         case 1:
           currentBody = CategoryPage();
