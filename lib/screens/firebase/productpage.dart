@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image/image.dart' as img;
 
@@ -37,7 +38,7 @@ class _ProductFbPageState extends State<ProductPage> {
   Future<void> _showProductDialog([Map<String, dynamic>? product]) async {
     final nameController = TextEditingController(text: product?['name']?.toString() ?? '');
     final priceController = TextEditingController(
-      text: product != null ? product['price']?.toString() ?? '' : '',
+      text: product != null ? _formatPriceForDisplay(product['price']) : '',
     );
     final descriptionController = TextEditingController(text: product?['description']?.toString() ?? '');
 
@@ -82,9 +83,11 @@ class _ProductFbPageState extends State<ProductPage> {
                     TextField(
                       controller: priceController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [_ThousandsSeparatorInputFormatter()],
                       decoration: const InputDecoration(
                         labelText: 'Giá sản phẩm',
                         border: OutlineInputBorder(),
+                        suffixText: '₫',
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -194,7 +197,8 @@ class _ProductFbPageState extends State<ProductPage> {
                       ? null
                       : () async {
                           final name = nameController.text.trim();
-                          final price = double.tryParse(priceController.text.trim());
+                          final priceDigitsOnly = priceController.text.replaceAll('.', '').trim();
+                          final price = double.tryParse(priceDigitsOnly);
                           final description = descriptionController.text.trim();
 
                           if (name.isEmpty || price == null || selectedCategoryId == null) {
@@ -530,9 +534,52 @@ class _ProductFbPageState extends State<ProductPage> {
   }
 }
 
-/// Resize ảnh về cạnh dài nhất 600px và encode lại thành JPEG chất lượng vừa
-/// phải để giảm dung lượng trước khi base64. Chạy trong isolate riêng qua
-/// `compute()` để không làm giật UI khi xử lý ảnh lớn.
+/// Chèn dấu chấm phân cách hàng nghìn khi người dùng gõ số, ví dụ
+/// gõ "11000000" sẽ tự hiển thị thành "11.000.000".
+class _ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+
+    final formatted = _formatDigitsWithDots(digitsOnly);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Chèn dấu chấm mỗi 3 chữ số tính từ bên phải, ví dụ "11000000" -> "11.000.000".
+String _formatDigitsWithDots(String digitsOnly) {
+  final buffer = StringBuffer();
+  for (int i = 0; i < digitsOnly.length; i++) {
+    final posFromRight = digitsOnly.length - i;
+    buffer.write(digitsOnly[i]);
+    if (posFromRight > 1 && posFromRight % 3 == 1) {
+      buffer.write('.');
+    }
+  }
+  return buffer.toString();
+}
+
+/// Format giá trị 'price' lấy từ Firestore (num) thành chuỗi có dấu chấm
+/// để hiển thị sẵn trong ô nhập khi sửa sản phẩm.
+String _formatPriceForDisplay(dynamic priceValue) {
+  if (priceValue == null) return '';
+  final priceNum = priceValue is num ? priceValue : num.tryParse(priceValue.toString());
+  if (priceNum == null) return '';
+  final intPart = priceNum.truncate().toString();
+  return _formatDigitsWithDots(intPart);
+}
+
 Uint8List? _resizeAndEncodeJpg(Uint8List inputBytes) {
   final decoded = img.decodeImage(inputBytes);
   if (decoded == null) return null;

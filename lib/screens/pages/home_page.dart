@@ -75,7 +75,9 @@ class HomePage extends StatelessWidget {
                     const SizedBox(height: 14),
                     _buildProductList(),
                     const SizedBox(height: 20),
-                    _buildGiftingBanner(),
+                    _buildSectionHeader('TẤT CẢ SẢN PHẨM'),
+                    const SizedBox(height: 14),
+                    _buildAllProductsGrid(),
                   ],
                 ),
               ),
@@ -160,179 +162,201 @@ class HomePage extends StatelessWidget {
     }
   }
 
-Widget _buildProductList() {
-  return SizedBox(
-    height: 290,
-    child: StreamBuilder<QuerySnapshot>(
+  /// Widget card sản phẩm dùng chung cho cả danh sách ngang (NEW ARRIVALS)
+  /// và lưới dọc (TẤT CẢ SẢN PHẨM). [width] null khi dùng trong GridView
+  /// (để card giãn theo ô lưới thay vì set cứng chiều rộng).
+  Widget _buildProductCard(Map<String, dynamic> product, {double? width}) {
+    final imageBase64 = (product["image"] ?? "").toString();
+    final imageBytes = _decodeProductImage(imageBase64);
+    final name = product["name"] ?? "";
+    final price = product["price"] ?? 0;
+
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.05),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// IMAGE
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
+                child: imageBytes == null
+                    ? Container(
+                        height: 150,
+                        width: double.infinity,
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(Icons.image),
+                        ),
+                      )
+                    : Image.memory(
+                        imageBytes,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 150,
+                          width: double.infinity,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(Icons.broken_image),
+                          ),
+                        ),
+                      ),
+              ),
+              const Positioned(
+                top: 8,
+                right: 8,
+                child: Icon(Icons.favorite_border),
+              ),
+            ],
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "${price.toString()} VND",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.black,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        onPressed: () {},
+                      ),
+                    )
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductList() {
+    return SizedBox(
+      height: 290,
+      child: StreamBuilder<QuerySnapshot>(
+        // Chỉ lấy 10 sản phẩm được tạo gần đây nhất (mới nhất lên đầu)
+        stream: FirebaseFirestore.instance
+            .collection("products")
+            .orderBy("createdAt", descending: true)
+            .limit(10)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text("No products"),
+            );
+          }
+
+          final products = snapshot.data!.docs;
+
+          return ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index].data() as Map<String, dynamic>;
+              return _buildProductCard(product, width: 170);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Lưới hiển thị TẤT CẢ sản phẩm, cuộn dọc theo trang (dùng shrinkWrap +
+  /// NeverScrollableScrollPhysics vì đã nằm trong SingleChildScrollView).
+  Widget _buildAllProductsGrid() {
+    return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection("products")
+          .orderBy("createdAt", descending: true)
+          .limit(20)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text("No products"),
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text("Chưa có sản phẩm nào.")),
           );
         }
 
         final products = snapshot.data!.docs;
 
-        return ListView.separated(
-          scrollDirection: Axis.horizontal,
+        return GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          separatorBuilder: (_, __) => const SizedBox(width: 14),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: products.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            childAspectRatio: 0.62,
+          ),
           itemBuilder: (context, index) {
-            final product =
-                products[index].data() as Map<String, dynamic>;
-
-            final imageBase64 = (product["image"] ?? "").toString();
-            final imageBytes = _decodeProductImage(imageBase64);
-            final name = product["name"] ?? "";
-            final price = product["price"] ?? 0;
-
-            return Container(
-              width: 170,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color.fromRGBO(0, 0, 0, 0.05),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  )
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  /// IMAGE
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(18),
-                        ),
-                        child: imageBytes == null
-                            ? Container(
-                                height: 150,
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Icon(Icons.image),
-                                ),
-                              )
-                            : Image.memory(
-                                imageBytes,
-                                height: 150,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  height: 150,
-                                  color: Colors.grey.shade200,
-                                  child: const Center(
-                                    child: Icon(Icons.broken_image),
-                                  ),
-                                ),
-                              ),
-                      ),
-
-                      const Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Icon(Icons.favorite_border),
-                      ),
-                    ],
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-
-                        Text(
-                          name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Row(
-                          children: [
-
-                            Expanded(
-                              child: Text(
-                                "${price.toString()} VND",
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.black,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: const Icon(
-                                  Icons.add,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                onPressed: () {},
-                              ),
-                            )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
+            final product = products[index].data() as Map<String, dynamic>;
+            return _buildProductCard(product);
           },
         );
       },
-    ),
-  );
-}
-
-  Widget _buildGiftingBanner() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        height: 160,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E3D2F),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
-            Text('GUCCI', style: TextStyle(color: Colors.white70, letterSpacing: 3, fontSize: 12)),
-            Text('GIFTING', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            Text(
-              'Meaningful gifts for someone special.',
-              style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

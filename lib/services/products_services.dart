@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image/image.dart' as img;
 
 class ProductPage extends StatefulWidget {
   const ProductPage({super.key});
@@ -18,9 +21,13 @@ class _ProductFbPageState extends State<ProductPage> {
       FirebaseFirestore.instance.collection('categories');
   final TextEditingController _searchController = TextEditingController();
 
-  Uint8List? imageBytes;
-  String? imageUrl;
-  bool isUploadingImage = false; // cờ khóa nút Lưu trong lúc đang upload ảnh
+  Uint8List? imageBytes; // ảnh gốc mới chọn (để preview ngay)
+  String? imageBase64; // chuỗi base64 sẽ lưu vào Firestore
+  bool isProcessingImage = false; // đang resize/encode ảnh
+
+  // Giới hạn an toàn cho 1 field string trong Firestore (~1MB/document).
+  // Base64 tăng ~33% dung lượng nên set ngưỡng thấp hơn nhiều để an toàn.
+  static const int _maxBase64Length = 700000; // ~700KB base64 (~500KB ảnh gốc)
 
   @override
   void dispose() {
@@ -31,14 +38,14 @@ class _ProductFbPageState extends State<ProductPage> {
   Future<void> _showProductDialog([Map<String, dynamic>? product]) async {
     final nameController = TextEditingController(text: product?['name']?.toString() ?? '');
     final priceController = TextEditingController(
-      text: product != null ? product['price']?.toString() ?? '' : '',
+      text: product != null ? _formatPriceForDisplay(product['price']) : '',
     );
     final descriptionController = TextEditingController(text: product?['description']?.toString() ?? '');
 
     // Reset đầy đủ mỗi lần mở dialog, tránh dính dữ liệu ảnh của lần trước
     imageBytes = null;
-    imageUrl = product?['image'];
-    isUploadingImage = false;
+    imageBase64 = product?['image']?.toString();
+    isProcessingImage = false;
 
     String? selectedCategoryId = product?['categoryId']?.toString();
     final productId = product?['id']?.toString();
@@ -76,9 +83,11 @@ class _ProductFbPageState extends State<ProductPage> {
                     TextField(
                       controller: priceController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [_ThousandsSeparatorInputFormatter()],
                       decoration: const InputDecoration(
                         labelText: 'Giá sản phẩm',
                         border: OutlineInputBorder(),
+                        suffixText: '₫',
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -125,11 +134,11 @@ class _ProductFbPageState extends State<ProductPage> {
                                       fit: BoxFit.cover,
                                     ),
                                   )
-                                : (imageUrl != null && imageUrl!.isNotEmpty)
+                                : (imageBase64 != null && imageBase64!.isNotEmpty)
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
-                                        child: Image.network(
-                                          imageUrl!,
+                                        child: Image.memory(
+                                          base64Decode(imageBase64!),
                                           fit: BoxFit.cover,
                                         ),
                                       )
@@ -145,20 +154,25 @@ class _ProductFbPageState extends State<ProductPage> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              icon: isUploadingImage
+                              icon: isProcessingImage
                                   ? const SizedBox(
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                     )
                                   : const Icon(Icons.image),
-                              label: Text(isUploadingImage ? "Đang tải ảnh lên..." : "Import Image"),
-                              onPressed: isUploadingImage
+                              label: Text(isProcessingImage ? "Đang xử lý ảnh..." : "Import Image"),
+                              onPressed: isProcessingImage
                                   ? null
                                   : () async {
-                                      await pickImage(() {
-                                        setStateDialog(() {});
-                                      });
+                                      await pickImage(
+                                        () => setStateDialog(() {}),
+                                        (message) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(message)),
+                                          );
+                                        },
+                                      );
                                     },
                             ),
                           ),
@@ -173,18 +187,19 @@ class _ProductFbPageState extends State<ProductPage> {
                   onPressed: () {
                     // reset khi hủy để không dính dữ liệu ảnh cho lần mở dialog sau
                     imageBytes = null;
-                    imageUrl = null;
-                    isUploadingImage = false;
+                    imageBase64 = null;
+                    isProcessingImage = false;
                     Navigator.pop(context);
                   },
                   child: const Text('Hủy'),
                 ),
                 ElevatedButton(
-                  onPressed: isUploadingImage
-                      ? null // khóa nút Lưu khi ảnh chưa upload xong
+                  onPressed: isProcessingImage
+                      ? null // khóa nút Lưu khi ảnh chưa xử lý xong
                       : () async {
                           final name = nameController.text.trim();
-                          final price = double.tryParse(priceController.text.trim());
+                          final priceDigitsOnly = priceController.text.replaceAll('.', '').trim();
+                          final price = double.tryParse(priceDigitsOnly);
                           final description = descriptionController.text.trim();
 
                           if (name.isEmpty || price == null || selectedCategoryId == null) {
@@ -205,7 +220,7 @@ class _ProductFbPageState extends State<ProductPage> {
                               'name': name,
                               'price': price,
                               'description': description,
-                              'image': imageUrl ?? '',
+                              'image': imageBase64 ?? '',
                               'categoryId': selectedCategoryId,
                               'categoryName': categoryName,
                               'createdAt': FieldValue.serverTimestamp(),
@@ -215,19 +230,19 @@ class _ProductFbPageState extends State<ProductPage> {
                               'name': name,
                               'price': price,
                               'description': description,
-                              'image': imageUrl ?? '',
+                              'image': imageBase64 ?? '',
                               'categoryId': selectedCategoryId,
                               'categoryName': categoryName,
                             });
                           }
 
                           imageBytes = null;
-                          imageUrl = null;
+                          imageBase64 = null;
 
                           if (!mounted) return;
                           Navigator.pop(context);
                         },
-                  child: isUploadingImage
+                  child: isProcessingImage
                       ? const SizedBox(
                           width: 18,
                           height: 18,
@@ -267,49 +282,50 @@ class _ProductFbPageState extends State<ProductPage> {
     );
   }
 
-  Future<void> pickImage(VoidCallback refresh) async {
+  /// Chọn ảnh, resize xuống kích thước nhỏ rồi encode base64 để lưu thẳng
+  /// vào Firestore (không cần Firebase Storage / gói Blaze).
+  /// [onError] dùng để báo lỗi (ví dụ ảnh vẫn quá nặng) ra SnackBar.
+  Future<void> pickImage(VoidCallback refresh, void Function(String message) onError) async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         withData: true,
       );
-
-      if (result == null) {
-        debugPrint("Không chọn file");
-        return;
-      }
+      if (result == null) return;
 
       final file = result.files.first;
-      debugPrint("Tên file: ${file.name}");
-      debugPrint("Bytes: ${file.bytes?.length}");
+      final originalBytes = file.bytes;
+      if (originalBytes == null) return;
 
-      imageBytes = file.bytes;
+      isProcessingImage = true;
+      refresh();
 
-      if (imageBytes == null) {
-        debugPrint("imageBytes = null");
+      // Chạy trực tiếp trên main thread (không dùng compute/Isolate vì
+      // Isolate.spawn không được hỗ trợ đầy đủ trên Flutter Web và hay
+      // gây lỗi). Ảnh đã được giới hạn kích thước nên xử lý vẫn đủ nhanh.
+      await Future.delayed(Duration.zero);
+      final resizedBytes = _resizeAndEncodeJpg(originalBytes);
+
+      if (resizedBytes == null) {
+        onError('Không thể xử lý ảnh này. Vui lòng chọn ảnh khác.');
         return;
       }
 
-      // Bật cờ đang upload + hiện preview ngay
-      isUploadingImage = true;
-      refresh();
+      final encoded = base64Encode(resizedBytes);
 
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child("products/${DateTime.now().millisecondsSinceEpoch}_${file.name}");
+      if (encoded.length > _maxBase64Length) {
+        onError('Ảnh vẫn quá lớn sau khi nén (${(encoded.length / 1024).toStringAsFixed(0)}KB). '
+            'Vui lòng chọn ảnh có độ phân giải nhỏ hơn.');
+        return;
+      }
 
-      final task = await ref.putData(imageBytes!);
-      debugPrint("State: ${task.state}");
-
-      imageUrl = await ref.getDownloadURL();
-      debugPrint("Upload OK: $imageUrl");
+      imageBytes = resizedBytes;
+      imageBase64 = encoded;
     } catch (e) {
-      debugPrint("========== ERROR UPLOAD ẢNH ==========");
-      debugPrint(e.toString());
-      debugPrint("=======================================");
+      debugPrint('Lỗi xử lý ảnh: $e');
+      onError('Đã xảy ra lỗi khi xử lý ảnh.');
     } finally {
-      // Luôn tắt cờ upload dù thành công hay lỗi, để không khóa nút Lưu mãi
-      isUploadingImage = false;
+      isProcessingImage = false;
       refresh();
     }
   }
@@ -381,6 +397,7 @@ class _ProductFbPageState extends State<ProductPage> {
                   itemCount: filteredProducts.length,
                   itemBuilder: (context, index) {
                     final product = filteredProducts[index];
+                    final imageBase64Str = product['image']?.toString() ?? '';
                     final categoryName = product['categoryName']?.toString() ?? 'Chưa có danh mục';
                     final description = product['description']?.toString() ?? '';
                     final price = product['price'] ?? 0;
@@ -401,6 +418,21 @@ class _ProductFbPageState extends State<ProductPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (imageBase64Str.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                              child: Image.memory(
+                                base64Decode(imageBase64Str),
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  height: 160,
+                                  color: Colors.grey.shade100,
+                                  child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                ),
+                              ),
+                            ),
                           Padding(
                             padding: const EdgeInsets.all(14),
                             child: Column(
@@ -501,4 +533,68 @@ class _ProductFbPageState extends State<ProductPage> {
       ),
     );
   }
+}
+
+/// Chèn dấu chấm phân cách hàng nghìn khi người dùng gõ số, ví dụ
+/// gõ "11000000" sẽ tự hiển thị thành "11.000.000".
+class _ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(text: '');
+    }
+
+    final formatted = _formatDigitsWithDots(digitsOnly);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Chèn dấu chấm mỗi 3 chữ số tính từ bên phải, ví dụ "11000000" -> "11.000.000".
+String _formatDigitsWithDots(String digitsOnly) {
+  final buffer = StringBuffer();
+  for (int i = 0; i < digitsOnly.length; i++) {
+    final posFromRight = digitsOnly.length - i;
+    buffer.write(digitsOnly[i]);
+    if (posFromRight > 1 && posFromRight % 3 == 1) {
+      buffer.write('.');
+    }
+  }
+  return buffer.toString();
+}
+
+/// Format giá trị 'price' lấy từ Firestore (num) thành chuỗi có dấu chấm
+/// để hiển thị sẵn trong ô nhập khi sửa sản phẩm.
+String _formatPriceForDisplay(dynamic priceValue) {
+  if (priceValue == null) return '';
+  final priceNum = priceValue is num ? priceValue : num.tryParse(priceValue.toString());
+  if (priceNum == null) return '';
+  final intPart = priceNum.truncate().toString();
+  return _formatDigitsWithDots(intPart);
+}
+
+/// Resize ảnh về cạnh dài nhất 600px và encode lại thành JPEG chất lượng vừa
+/// phải để giảm dung lượng trước khi base64.
+Uint8List? _resizeAndEncodeJpg(Uint8List inputBytes) {
+  final decoded = img.decodeImage(inputBytes);
+  if (decoded == null) return null;
+
+  img.Image resized = decoded;
+  const maxDimension = 600;
+  if (decoded.width > maxDimension || decoded.height > maxDimension) {
+    resized = decoded.width >= decoded.height
+        ? img.copyResize(decoded, width: maxDimension)
+        : img.copyResize(decoded, height: maxDimension);
+  }
+
+  final jpg = img.encodeJpg(resized, quality: 70);
+  return Uint8List.fromList(jpg);
 }

@@ -24,8 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _passwordController = TextEditingController();
 
-  final _auth = FirebaseAuth.instance;
-
   bool _isLoading = false;
 
   bool _obscurePassword = true;

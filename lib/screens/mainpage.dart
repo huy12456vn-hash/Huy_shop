@@ -4,7 +4,6 @@ import 'package:shop_gucci/widgets/nav_widget.dart';
 import '../screens/pages/category_page.dart';
 import '../screens/pages/account_page.dart';
 import '../screens/pages/wishlist_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
