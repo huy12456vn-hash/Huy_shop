@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CategoryPage extends StatefulWidget {
-  const CategoryPage({super.key});
+  final String? initialCategoryId;
+
+  const CategoryPage({super.key, this.initialCategoryId});
 
   @override
   State<CategoryPage> createState() => _CategoryPageState();
@@ -14,19 +17,198 @@ class CategoryPage extends StatefulWidget {
 class _CategoryPageState extends State<CategoryPage> {
   final CollectionReference<Map<String, dynamic>> _categoriesRef =
       FirebaseFirestore.instance.collection('categories');
+
   final CollectionReference<Map<String, dynamic>> _productsRef =
       FirebaseFirestore.instance.collection('products');
 
-  // null nghĩa là đang chọn "All"
+  final CollectionReference<Map<String, dynamic>> _wishlistsRef =
+      FirebaseFirestore.instance.collection('wishlists');
+
   String? _selectedCategoryId;
 
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategoryId = widget.initialCategoryId;
+  }
+
   Uint8List? _decodeProductImage(String base64String) {
-    if (base64String.isEmpty) return null;
+    if (base64String.isEmpty) {
+      return null;
+    }
+
     try {
       return base64Decode(base64String);
     } catch (_) {
       return null;
     }
+  }
+
+  String _formatPrice(dynamic value) {
+    final number = value is num ? value : num.tryParse(value.toString()) ?? 0;
+
+    final digits = number.truncate().toString();
+    final buffer = StringBuffer();
+
+    for (int index = 0; index < digits.length; index++) {
+      final positionFromRight = digits.length - index;
+
+      buffer.write(digits[index]);
+
+      if (positionFromRight > 1 && positionFromRight % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+
+    return '${buffer.toString()} VND';
+  }
+
+  String _wishlistDocumentId({
+    required String userId,
+    required String productId,
+  }) {
+    return '${userId}_$productId';
+  }
+
+  Future<void> _toggleWishlist({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+  }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để sử dụng Wishlist.'),
+        ),
+      );
+      return;
+    }
+
+    final wishlistId = _wishlistDocumentId(
+      userId: currentUser.uid,
+      productId: productId,
+    );
+
+    final wishlistDocument = _wishlistsRef.doc(wishlistId);
+
+    try {
+      final snapshot = await wishlistDocument.get();
+
+      if (snapshot.exists) {
+        await wishlistDocument.delete();
+
+        if (!context.mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã xóa sản phẩm khỏi Wishlist.'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } else {
+        await wishlistDocument.set({
+          'userId': currentUser.uid,
+          'productId': productId,
+          'name': product['name'] ?? '',
+          'price': product['price'] ?? 0,
+          'image': product['image'] ?? '',
+          'description': product['description'] ?? '',
+          'categoryId': product['categoryId'] ?? '',
+          'categoryName': product['categoryName'] ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        if (!context.mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm sản phẩm vào Wishlist.'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể cập nhật Wishlist: $error')),
+      );
+    }
+  }
+
+  Widget _buildWishlistButton({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+  }) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      return _heartButton(
+        isFavorite: false,
+        onPressed: () {
+          _toggleWishlist(
+            context: context,
+            productId: productId,
+            product: product,
+          );
+        },
+      );
+    }
+
+    final wishlistId = _wishlistDocumentId(
+      userId: currentUser.uid,
+      productId: productId,
+    );
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _wishlistsRef.doc(wishlistId).snapshots(),
+      builder: (context, snapshot) {
+        final isFavorite = snapshot.hasData && snapshot.data!.exists;
+
+        return _heartButton(
+          isFavorite: isFavorite,
+          onPressed: () {
+            _toggleWishlist(
+              context: context,
+              productId: productId,
+              product: product,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _heartButton({
+    required bool isFavorite,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+        icon: Icon(
+          isFavorite ? Icons.favorite : Icons.favorite_border,
+          color: Colors.black,
+          size: 21,
+        ),
+      ),
+    );
   }
 
   @override
@@ -48,9 +230,19 @@ class _CategoryPageState extends State<CategoryPage> {
     return SizedBox(
       height: 44,
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        // Danh mục tạo trước (cũ) hiện trước, danh mục mới tạo hiện sau
-        stream: _categoriesRef.orderBy('createdAt', descending: false).snapshots(),
+        stream: _categoriesRef
+            .orderBy('createdAt', descending: false)
+            .snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text(
+                'Không tải được danh mục',
+                style: TextStyle(color: Colors.grey),
+              ),
+            );
+          }
+
           final categoryDocs = snapshot.data?.docs ?? [];
 
           return ListView(
@@ -60,19 +252,29 @@ class _CategoryPageState extends State<CategoryPage> {
               _buildChip(
                 label: 'All',
                 selected: _selectedCategoryId == null,
-                onTap: () => setState(() => _selectedCategoryId = null),
+                onTap: () {
+                  setState(() {
+                    _selectedCategoryId = null;
+                  });
+                },
               ),
               const SizedBox(width: 8),
               ...categoryDocs.map((doc) {
                 final data = doc.data();
                 final name = data['name']?.toString() ?? 'Không tên';
+
                 final selected = _selectedCategoryId == doc.id;
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: _buildChip(
                     label: name,
                     selected: selected,
-                    onTap: () => setState(() => _selectedCategoryId = doc.id),
+                    onTap: () {
+                      setState(() {
+                        _selectedCategoryId = doc.id;
+                      });
+                    },
                   ),
                 );
               }),
@@ -113,10 +315,6 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Widget _buildProductGrid() {
-    // Khi chọn "All": chỉ orderBy (không where) -> không cần composite index.
-    // Khi chọn 1 danh mục cụ thể: chỉ where (không orderBy ở server) để
-    // tránh phải tạo composite index; sắp xếp lại theo createdAt ngay
-    // trong Dart sau khi nhận dữ liệu.
     final bool isFilteringByCategory = _selectedCategoryId != null;
 
     final Query<Map<String, dynamic>> query = isFilteringByCategory
@@ -127,8 +325,11 @@ class _CategoryPageState extends State<CategoryPage> {
       stream: query.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.black),
+          );
         }
+
         if (snapshot.hasError) {
           return Center(
             child: Padding(
@@ -141,20 +342,39 @@ class _CategoryPageState extends State<CategoryPage> {
             ),
           );
         }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('Không có sản phẩm nào trong danh mục này.'));
+          return const Center(
+            child: Text(
+              'Không có sản phẩm nào trong danh mục này.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
         }
 
         var products = snapshot.data!.docs;
 
-        // Nếu đang lọc theo danh mục (không orderBy ở server), sắp xếp lại
-        // theo createdAt mới nhất trước, ngay trong bộ nhớ.
         if (isFilteringByCategory) {
-          products = [...products]..sort((a, b) {
+          products = [...products]
+            ..sort((a, b) {
               final aTime = a.data()['createdAt'] as Timestamp?;
+
               final bTime = b.data()['createdAt'] as Timestamp?;
-              if (aTime == null || bTime == null) return 0;
-              return bTime.compareTo(aTime); // mới nhất trước
+
+              if (aTime == null && bTime == null) {
+                return 0;
+              }
+
+              if (aTime == null) {
+                return 1;
+              }
+
+              if (bTime == null) {
+                return -1;
+              }
+
+              return bTime.compareTo(aTime);
             });
         }
 
@@ -168,19 +388,31 @@ class _CategoryPageState extends State<CategoryPage> {
             childAspectRatio: 0.58,
           ),
           itemBuilder: (context, index) {
-            final product = products[index].data();
-            return _buildProductCard(product);
+            final productDocument = products[index];
+
+            return _buildProductCard(
+              context: context,
+              productId: productDocument.id,
+              product: productDocument.data(),
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product) {
-    final imageBase64 = (product["image"] ?? "").toString();
+  Widget _buildProductCard({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+  }) {
+    final imageBase64 = (product['image'] ?? '').toString();
+
     final imageBytes = _decodeProductImage(imageBase64);
-    final name = product["name"] ?? "";
-    final price = product["price"] ?? 0;
+
+    final name = (product['name'] ?? 'Không tên').toString();
+
+    final price = product['price'] ?? 0;
 
     return Container(
       decoration: BoxDecoration(
@@ -191,7 +423,7 @@ class _CategoryPageState extends State<CategoryPage> {
             color: Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 12,
             offset: Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -201,29 +433,47 @@ class _CategoryPageState extends State<CategoryPage> {
           Stack(
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
                 child: AspectRatio(
-                  aspectRatio: 1.05, // ảnh tự co giãn theo chiều rộng ô lưới
+                  aspectRatio: 1.05,
                   child: imageBytes == null
                       ? Container(
                           color: Colors.grey.shade200,
-                          child: const Center(child: Icon(Icons.image)),
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: Colors.grey,
+                            ),
+                          ),
                         )
                       : Image.memory(
                           imageBytes,
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: Colors.grey.shade200,
-                            child: const Center(child: Icon(Icons.broken_image)),
-                          ),
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                 ),
               ),
-              const Positioned(
+              Positioned(
                 top: 8,
                 right: 8,
-                child: Icon(Icons.favorite_border),
+                child: _buildWishlistButton(
+                  context: context,
+                  productId: productId,
+                  product: product,
+                ),
               ),
             ],
           ),
@@ -237,14 +487,18 @@ class _CategoryPageState extends State<CategoryPage> {
                   name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, height: 1.2),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    height: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        "${price.toString()} VND",
+                        _formatPrice(price),
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Colors.grey),
                       ),
@@ -254,7 +508,11 @@ class _CategoryPageState extends State<CategoryPage> {
                       backgroundColor: Colors.black,
                       child: IconButton(
                         padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                        icon: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         onPressed: () {},
                       ),
                     ),

@@ -36,11 +36,15 @@ class _ProductFbPageState extends State<ProductPage> {
   }
 
   Future<void> _showProductDialog([Map<String, dynamic>? product]) async {
-    final nameController = TextEditingController(text: product?['name']?.toString() ?? '');
+    final nameController = TextEditingController(
+      text: product?['name']?.toString() ?? '',
+    );
     final priceController = TextEditingController(
       text: product != null ? _formatPriceForDisplay(product['price']) : '',
     );
-    final descriptionController = TextEditingController(text: product?['description']?.toString() ?? '');
+    final descriptionController = TextEditingController(
+      text: product?['description']?.toString() ?? '',
+    );
 
     // Reset đầy đủ mỗi lần mở dialog
     imageBytes = null;
@@ -134,21 +138,22 @@ class _ProductFbPageState extends State<ProductPage> {
                                       fit: BoxFit.cover,
                                     ),
                                   )
-                                : (imageBase64 != null && imageBase64!.isNotEmpty)
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Image.memory(
-                                          base64Decode(imageBase64!),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : const Center(
-                                        child: Icon(
-                                          Icons.image,
-                                          size: 60,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
+                                : (imageBase64 != null &&
+                                      imageBase64!.isNotEmpty)
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.memory(
+                                      base64Decode(imageBase64!),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Center(
+                                    child: Icon(
+                                      Icons.image,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
@@ -158,17 +163,26 @@ class _ProductFbPageState extends State<ProductPage> {
                                   ? const SizedBox(
                                       width: 16,
                                       height: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
                                     )
                                   : const Icon(Icons.image),
-                              label: Text(isProcessingImage ? "Đang xử lý ảnh..." : "Import Image"),
+                              label: Text(
+                                isProcessingImage
+                                    ? "Đang xử lý ảnh..."
+                                    : "Import Image",
+                              ),
                               onPressed: isProcessingImage
                                   ? null
                                   : () async {
                                       await pickImage(
                                         () => setStateDialog(() {}),
                                         (message) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(content: Text(message)),
                                           );
                                         },
@@ -197,19 +211,29 @@ class _ProductFbPageState extends State<ProductPage> {
                       ? null
                       : () async {
                           final name = nameController.text.trim();
-                          final priceDigitsOnly = priceController.text.replaceAll('.', '').trim();
+                          final priceDigitsOnly = priceController.text
+                              .replaceAll('.', '')
+                              .trim();
                           final price = double.tryParse(priceDigitsOnly);
                           final description = descriptionController.text.trim();
 
-                          if (name.isEmpty || price == null || selectedCategoryId == null) {
+                          if (name.isEmpty ||
+                              price == null ||
+                              selectedCategoryId == null) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Vui lòng nhập đủ thông tin bắt buộc.')),
+                              const SnackBar(
+                                content: Text(
+                                  'Vui lòng nhập đủ thông tin bắt buộc.',
+                                ),
+                              ),
                             );
                             return;
                           }
 
-                          final categoryDoc = await _categoriesRef.doc(selectedCategoryId).get();
+                          final categoryDoc = await _categoriesRef
+                              .doc(selectedCategoryId)
+                              .get();
                           final categoryName = categoryDoc.exists
                               ? (categoryDoc.data()?['name']?.toString() ?? '')
                               : '';
@@ -245,7 +269,10 @@ class _ProductFbPageState extends State<ProductPage> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Lưu'),
                 ),
@@ -260,7 +287,9 @@ class _ProductFbPageState extends State<ProductPage> {
   Future<void> _deleteProduct(String id) async {
     await _productsRef.doc(id).delete();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm!')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm!')));
   }
 
   Widget _buildInfoChip(IconData icon, String label) {
@@ -283,7 +312,10 @@ class _ProductFbPageState extends State<ProductPage> {
 
   /// Chọn ảnh, resize xuống kích thước nhỏ rồi encode base64.
   /// [onError] dùng để báo lỗi (ví dụ ảnh vẫn quá nặng) ra SnackBar.
-  Future<void> pickImage(VoidCallback refresh, void Function(String message) onError) async {
+  Future<void> pickImage(
+    VoidCallback refresh,
+    void Function(String message) onError,
+  ) async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -313,8 +345,10 @@ class _ProductFbPageState extends State<ProductPage> {
       final encoded = base64Encode(resizedBytes);
 
       if (encoded.length > _maxBase64Length) {
-        onError('Ảnh vẫn quá lớn sau khi nén (${(encoded.length / 1024).toStringAsFixed(0)}KB). '
-            'Vui lòng chọn ảnh có độ phân giải nhỏ hơn.');
+        onError(
+          'Ảnh vẫn quá lớn sau khi nén (${(encoded.length / 1024).toStringAsFixed(0)}KB). '
+          'Vui lòng chọn ảnh có độ phân giải nhỏ hơn.',
+        );
         return;
       }
 
@@ -347,7 +381,9 @@ class _ProductFbPageState extends State<ProductPage> {
               decoration: InputDecoration(
                 hintText: 'Tìm kiếm sản phẩm...',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
@@ -362,15 +398,20 @@ class _ProductFbPageState extends State<ProductPage> {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _productsRef.orderBy('createdAt', descending: true).snapshots(),
+              stream: _productsRef
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
               builder: (context, streamSnapshot) {
                 if (streamSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (streamSnapshot.hasError) {
-                  return const Center(child: Text('Đã xảy ra lỗi khi tải dữ liệu.'));
+                  return const Center(
+                    child: Text('Đã xảy ra lỗi khi tải dữ liệu.'),
+                  );
                 }
-                if (!streamSnapshot.hasData || streamSnapshot.data!.docs.isEmpty) {
+                if (!streamSnapshot.hasData ||
+                    streamSnapshot.data!.docs.isEmpty) {
                   return const Center(child: Text('Chưa có sản phẩm nào.'));
                 }
 
@@ -381,14 +422,22 @@ class _ProductFbPageState extends State<ProductPage> {
 
                 final query = _searchController.text.trim().toLowerCase();
                 final filteredProducts = products.where((product) {
-                  final name = (product['name']?.toString() ?? '').toLowerCase();
-                  final category = (product['categoryName']?.toString() ?? '').toLowerCase();
-                  final description = (product['description']?.toString() ?? '').toLowerCase();
-                  return query.isEmpty || name.contains(query) || category.contains(query) || description.contains(query);
+                  final name = (product['name']?.toString() ?? '')
+                      .toLowerCase();
+                  final category = (product['categoryName']?.toString() ?? '')
+                      .toLowerCase();
+                  final description = (product['description']?.toString() ?? '')
+                      .toLowerCase();
+                  return query.isEmpty ||
+                      name.contains(query) ||
+                      category.contains(query) ||
+                      description.contains(query);
                 }).toList();
 
                 if (filteredProducts.isEmpty) {
-                  return const Center(child: Text('Không tìm thấy sản phẩm phù hợp.'));
+                  return const Center(
+                    child: Text('Không tìm thấy sản phẩm phù hợp.'),
+                  );
                 }
 
                 return ListView.builder(
@@ -397,8 +446,11 @@ class _ProductFbPageState extends State<ProductPage> {
                   itemBuilder: (context, index) {
                     final product = filteredProducts[index];
                     final imageBase64Str = product['image']?.toString() ?? '';
-                    final categoryName = product['categoryName']?.toString() ?? 'Chưa có danh mục';
-                    final description = product['description']?.toString() ?? '';
+                    final categoryName =
+                        product['categoryName']?.toString() ??
+                        'Chưa có danh mục';
+                    final description =
+                        product['description']?.toString() ?? '';
                     final price = product['price'] ?? 0;
 
                     return Container(
@@ -419,17 +471,24 @@ class _ProductFbPageState extends State<ProductPage> {
                         children: [
                           if (imageBase64Str.isNotEmpty)
                             ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
                               child: Image.memory(
                                 base64Decode(imageBase64Str),
                                 height: 160,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  height: 160,
-                                  color: Colors.grey.shade100,
-                                  child: const Icon(Icons.broken_image, color: Colors.grey, size: 40),
-                                ),
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      height: 160,
+                                      color: Colors.grey.shade100,
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey,
+                                        size: 40,
+                                      ),
+                                    ),
                               ),
                             ),
                           Padding(
@@ -441,19 +500,29 @@ class _ProductFbPageState extends State<ProductPage> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        product['name']?.toString() ?? 'Không tên',
-                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        product['name']?.toString() ??
+                                            'Không tên',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.green.shade50,
                                         borderRadius: BorderRadius.circular(30),
                                       ),
                                       child: Text(
                                         '${price.toString()} ₫',
-                                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -461,9 +530,18 @@ class _ProductFbPageState extends State<ProductPage> {
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    const Icon(Icons.category_outlined, size: 16, color: Colors.grey),
+                                    const Icon(
+                                      Icons.category_outlined,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
                                     const SizedBox(width: 4),
-                                    Text(categoryName, style: const TextStyle(color: Colors.grey)),
+                                    Text(
+                                      categoryName,
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -472,7 +550,10 @@ class _ProductFbPageState extends State<ProductPage> {
                                     description,
                                     maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: Colors.black87, height: 1.4),
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      height: 1.4,
+                                    ),
                                   ),
                                 const SizedBox(height: 12),
                                 Row(
@@ -482,34 +563,60 @@ class _ProductFbPageState extends State<ProductPage> {
                                         spacing: 8,
                                         runSpacing: 8,
                                         children: [
-                                          _buildInfoChip(Icons.star_border, 'Mới'),
-                                          _buildInfoChip(Icons.local_shipping_outlined, 'Giao hàng'),
-                                          _buildInfoChip(Icons.favorite_border, 'Hot'),
+                                          _buildInfoChip(
+                                            Icons.star_border,
+                                            'Mới',
+                                          ),
+                                          _buildInfoChip(
+                                            Icons.local_shipping_outlined,
+                                            'Giao hàng',
+                                          ),
+                                          _buildInfoChip(
+                                            Icons.favorite_border,
+                                            'Hot',
+                                          ),
                                         ],
                                       ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.edit, color: Colors.orange),
-                                      onPressed: () => _showProductDialog(product),
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: Colors.orange,
+                                      ),
+                                      onPressed: () =>
+                                          _showProductDialog(product),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
                                       onPressed: () => showDialog(
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           title: const Text('Xác nhận xóa'),
-                                          content: const Text('Bạn có chắc muốn xóa sản phẩm này?'),
+                                          content: const Text(
+                                            'Bạn có chắc muốn xóa sản phẩm này?',
+                                          ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.pop(context),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
                                               child: const Text('Hủy'),
                                             ),
                                             TextButton(
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                _deleteProduct(product['id'].toString());
+                                                _deleteProduct(
+                                                  product['id'].toString(),
+                                                );
                                               },
-                                              child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+                                              child: const Text(
+                                                'Xóa',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -574,7 +681,9 @@ String _formatDigitsWithDots(String digitsOnly) {
 /// để hiển thị sẵn trong ô nhập khi sửa sản phẩm.
 String _formatPriceForDisplay(dynamic priceValue) {
   if (priceValue == null) return '';
-  final priceNum = priceValue is num ? priceValue : num.tryParse(priceValue.toString());
+  final priceNum = priceValue is num
+      ? priceValue
+      : num.tryParse(priceValue.toString());
   if (priceNum == null) return '';
   final intPart = priceNum.truncate().toString();
   return _formatDigitsWithDots(intPart);
