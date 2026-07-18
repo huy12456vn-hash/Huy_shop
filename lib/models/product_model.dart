@@ -18,11 +18,11 @@ class ProductModel {
   factory ProductModel.fromMap(String id, Map<String, dynamic> data) {
     return ProductModel(
       id: id,
-      name: data['name'] ?? '',
-      price: data['price'] ?? '',
-      image: data['image'] ?? '',
-      categoryId: data['categoryId'] ?? '',
-      description: data['description'] ?? '',
+      name: data['name']?.toString() ?? '',
+      price: data['price']?.toString() ?? '', // ✅ convert an toàn dù là int/double/String
+      image: data['image']?.toString() ?? '',
+      categoryId: data['categoryId']?.toString() ?? '',
+      description: data['description']?.toString() ?? '',
     );
   }
 }

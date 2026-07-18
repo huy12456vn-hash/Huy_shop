@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
+import '../../models/product_model.dart';
+import 'product_detail_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -170,7 +171,7 @@ class WishlistPage extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 14,
               crossAxisSpacing: 14,
-              childAspectRatio: 0.62,
+              childAspectRatio: 0.75,
             ),
             itemBuilder: (context, index) {
               final document = wishlistDocuments[index];
@@ -224,19 +225,34 @@ class WishlistPage extends StatelessWidget {
   }
 
   Widget _buildWishlistCard({
-    required BuildContext context,
-    required String wishlistDocumentId,
-    required Map<String, dynamic> product,
-  }) {
-    final String productName = (product['name'] ?? 'Không tên').toString();
+  required BuildContext context,
+  required String wishlistDocumentId,
+  required Map<String, dynamic> product,
+}) {
+  final String productName = (product['name'] ?? 'Không tên').toString();
 
-    final dynamic productPrice = product['price'] ?? 0;
+  final dynamic productPrice = product['price'] ?? 0;
 
-    final String imageBase64 = (product['image'] ?? '').toString();
+  final String imageBase64 = (product['image'] ?? '').toString();
 
-    final Uint8List? imageBytes = _decodeProductImage(imageBase64);
+  final Uint8List? imageBytes = _decodeProductImage(imageBase64);
 
-    return Container(
+  // productId thật của sản phẩm (khác với wishlistDocumentId)
+  final String productId = (product['productId'] ?? '').toString();
+
+  return GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductDetailPage(
+            product: ProductModel.fromMap(productId, product),
+          ),
+        ),
+      );
+    },
+    child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -342,6 +358,7 @@ class WishlistPage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

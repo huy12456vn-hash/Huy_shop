@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
+import '../../models/product_model.dart';
+import 'product_detail_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -385,7 +386,7 @@ class _CategoryPageState extends State<CategoryPage> {
             crossAxisCount: 2,
             mainAxisSpacing: 14,
             crossAxisSpacing: 14,
-            childAspectRatio: 0.58,
+            childAspectRatio: 0.65,
           ),
           itemBuilder: (context, index) {
             final productDocument = products[index];
@@ -400,21 +401,29 @@ class _CategoryPageState extends State<CategoryPage> {
       },
     );
   }
-
   Widget _buildProductCard({
-    required BuildContext context,
-    required String productId,
-    required Map<String, dynamic> product,
-  }) {
-    final imageBase64 = (product['image'] ?? '').toString();
+  required BuildContext context,
+  required String productId,
+  required Map<String, dynamic> product,
+}) {
+  final imageBase64 = (product['image'] ?? '').toString();
+  final imageBytes = _decodeProductImage(imageBase64);
+  final name = (product['name'] ?? 'Không tên').toString();
+  final price = product['price'] ?? 0;
 
-    final imageBytes = _decodeProductImage(imageBase64);
-
-    final name = (product['name'] ?? 'Không tên').toString();
-
-    final price = product['price'] ?? 0;
-
-    return Container(
+  return GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductDetailPage(
+            product: ProductModel.fromMap(productId, product),
+          ),
+        ),
+      );
+    },
+    child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -523,6 +532,7 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -4,7 +4,8 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import '../../models/product_model.dart';
+import 'product_detail_page.dart';
 import '../../widgets/banner_widget.dart';
 import 'category_page.dart';
 
@@ -496,20 +497,29 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildProductCard({
-    required BuildContext context,
-    required String productId,
-    required Map<String, dynamic> product,
-    double? width,
-  }) {
-    final imageBase64 = (product['image'] ?? '').toString();
+  required BuildContext context,
+  required String productId,
+  required Map<String, dynamic> product,
+  double? width,
+}) {
+  final imageBase64 = (product['image'] ?? '').toString();
+  final imageBytes = _decodeProductImage(imageBase64);
+  final name = (product['name'] ?? 'Không tên').toString();
+  final price = product['price'] ?? 0;
 
-    final imageBytes = _decodeProductImage(imageBase64);
-
-    final name = (product['name'] ?? 'Không tên').toString();
-
-    final price = product['price'] ?? 0;
-
-    return Container(
+  return GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProductDetailPage(
+            product: ProductModel.fromMap(productId, product),
+          ),
+        ),
+      );
+    },
+    child: Container(
       width: width,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -616,8 +626,9 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProductList() {
     return SizedBox(
@@ -718,7 +729,7 @@ class HomePage extends StatelessWidget {
             crossAxisCount: 2,
             mainAxisSpacing: 14,
             crossAxisSpacing: 14,
-            childAspectRatio: 0.62,
+            childAspectRatio: 0.65,
           ),
           itemBuilder: (context, index) {
             final productDocument = products[index];

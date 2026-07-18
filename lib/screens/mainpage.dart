@@ -4,6 +4,7 @@ import 'package:shop_gucci/widgets/nav_widget.dart';
 import '../screens/pages/category_page.dart';
 import '../screens/pages/account_page.dart';
 import '../screens/pages/wishlist_page.dart';
+import '../screens/pages/search_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -16,15 +17,17 @@ class _MainPageState extends State<MainPage> {
   int currentIndex = 0;
   late Widget currentBody;
   String currentTitle = "GUCCI";
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
     currentBody = HomePage();
   }
-  void changeTab(int index){
+
+  void changeTab(int index) {
     setState(() {
       currentIndex = index;
-      switch(index){
+      switch (index) {
         case 0:
           currentBody = HomePage();
           currentTitle = "GUCCI";
@@ -43,26 +46,47 @@ class _MainPageState extends State<MainPage> {
       }
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor:Colors.white54,
-        shape: Border(
-          bottom: BorderSide(
-            color: Colors.black,
-            width: 1
-          )
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white, // nên để trắng đặc để bóng hiện rõ
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 8,
+                spreadRadius: 0,
+                offset: const Offset(0, 3), // đổ bóng xuống dưới
+              ),
+            ],
+          ),
+          child: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Text(
+              currentTitle,
+              style: const TextStyle(letterSpacing: 5, fontSize: 30),
+            ),
+            actions: [
+              IconButton(onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>const SearchPage()));
+              }, 
+              icon: const Icon(Icons.search)),
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.shopping_bag_outlined),
+              ),
+            ],
+          ),
         ),
-        title: Text(currentTitle,style: TextStyle(letterSpacing: 5,fontSize: 30),),
-        actions: [
-          IconButton(onPressed: (){}, icon: const Icon(Icons.search)),
-          IconButton(onPressed: (){}, icon: const Icon(Icons.shopping_bag_outlined))
-        ],
-        ),
+      ),
       body: currentBody,
       bottomNavigationBar: AppBottomNav(currentIndex: currentIndex, onTab: changeTab),
     );
-  } 
+  }
 }

@@ -241,6 +241,7 @@ class _ProductFbPageState extends State<ProductPage> {
                           if (product == null) {
                             await _productsRef.add({
                               'name': name,
+                              'name_lowercase':name.toLowerCase(),
                               'price': price,
                               'description': description,
                               'image': imageBase64 ?? '',
@@ -251,6 +252,7 @@ class _ProductFbPageState extends State<ProductPage> {
                           } else {
                             await _productsRef.doc(productId).update({
                               'name': name,
+                              'name_lowercase':name.toLowerCase(),
                               'price': price,
                               'description': description,
                               'image': imageBase64 ?? '',
