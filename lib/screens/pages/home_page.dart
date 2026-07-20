@@ -4,10 +4,13 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../models/product_model.dart';
-import 'product_detail_page.dart';
+import '../../providers/cart_provider.dart';
 import '../../widgets/banner_widget.dart';
 import 'category_page.dart';
+import 'product_detail_page.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
@@ -367,6 +370,7 @@ class HomePage extends StatelessWidget {
           content: Text('Vui lòng đăng nhập để sử dụng Wishlist.'),
         ),
       );
+
       return;
     }
 
@@ -496,139 +500,174 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProductCard({
-  required BuildContext context,
-  required String productId,
-  required Map<String, dynamic> product,
-  double? width,
-}) {
-  final imageBase64 = (product['image'] ?? '').toString();
-  final imageBytes = _decodeProductImage(imageBase64);
-  final name = (product['name'] ?? 'Không tên').toString();
-  final price = product['price'] ?? 0;
+  Future<void> _addProductToCart({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+  }) async {
+    final productModel = ProductModel.fromMap(productId, product);
 
-  return GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProductDetailPage(
-            product: ProductModel.fromMap(productId, product),
-          ),
-        ),
-      );
-    },
-    child: Container(
-      width: width,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.05),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+    await context.read<CartProvider>().addProduct(productModel);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${productModel.name} đã được thêm vào giỏ hàng.'),
+        duration: const Duration(seconds: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(18),
-                ),
-                child: imageBytes == null
-                    ? Container(
-                        height: 150,
-                        width: double.infinity,
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(Icons.image_outlined, color: Colors.grey),
-                        ),
-                      )
-                    : Image.memory(
-                        imageBytes,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 150,
-                            width: double.infinity,
-                            color: Colors.grey.shade200,
-                            child: const Center(
-                              child: Icon(
-                                Icons.broken_image_outlined,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: _buildWishlistButton(
-                  context: context,
-                  productId: productId,
-                  product: product,
-                ),
-              ),
-            ],
+    );
+  }
+
+  Widget _buildProductCard({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+    double? width,
+  }) {
+    final imageBase64 = (product['image'] ?? '').toString();
+
+    final imageBytes = _decodeProductImage(imageBase64);
+
+    final name = (product['name'] ?? 'Không tên').toString();
+
+    final price = product['price'] ?? 0;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(
+              product: ProductModel.fromMap(productId, product),
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        );
+      },
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.05),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _formatPrice(price),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.black,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 18,
+                  child: imageBytes == null
+                      ? Container(
+                          height: 150,
+                          width: double.infinity,
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : Image.memory(
+                          imageBytes,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 150,
+                              width: double.infinity,
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _buildWishlistButton(
+                    context: context,
+                    productId: productId,
+                    product: product,
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _formatPrice(price),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.black,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            _addProductToCart(
+                              context: context,
+                              productId: productId,
+                              product: product,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildProductList() {
     return SizedBox(

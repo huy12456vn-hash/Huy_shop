@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:shop_gucci/screens/pages/home_page.dart';
-import 'package:shop_gucci/widgets/nav_widget.dart';
-import '../screens/pages/category_page.dart';
-import '../screens/pages/account_page.dart';
-import '../screens/pages/wishlist_page.dart';
-import '../screens/pages/search_page.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/cart_provider.dart';
+import '../widgets/nav_widget.dart';
+import 'pages/account_page.dart';
+import 'pages/cart_page.dart';
+import 'pages/category_page.dart';
+import 'pages/home_page.dart';
+import 'pages/search_page.dart';
+import 'pages/wishlist_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -16,7 +20,7 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int currentIndex = 0;
   late Widget currentBody;
-  String currentTitle = "GUCCI";
+  String currentTitle = 'GUCCI';
 
   @override
   void initState() {
@@ -27,40 +31,61 @@ class _MainPageState extends State<MainPage> {
   void changeTab(int index) {
     setState(() {
       currentIndex = index;
+
       switch (index) {
         case 0:
           currentBody = HomePage();
-          currentTitle = "GUCCI";
+          currentTitle = 'GUCCI';
           break;
+
         case 1:
-          currentBody = CategoryPage();
-          currentTitle = "Category";
+          currentBody = const CategoryPage();
+          currentTitle = 'Category';
           break;
+
         case 2:
-          currentBody = WishlistPage();
-          currentTitle = "Wishlist";
+          currentBody = const WishlistPage();
+          currentTitle = 'Wishlist';
           break;
+
         case 3:
           currentBody = AccountPage();
-          currentTitle = "Account";
+          currentTitle = 'Account';
+          break;
       }
     });
   }
 
+  void _openSearchPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SearchPage()),
+    );
+  }
+
+  void _openCartPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CartPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final int totalCartItems = context.watch<CartProvider>().totalItems;
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white, // nên để trắng đặc để bóng hiện rõ
+          decoration: const BoxDecoration(
+            color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Color.fromRGBO(0, 0, 0, 0.15),
                 blurRadius: 8,
                 spreadRadius: 0,
-                offset: const Offset(0, 3), // đổ bóng xuống dưới
+                offset: Offset(0, 3),
               ),
             ],
           ),
@@ -73,20 +98,62 @@ class _MainPageState extends State<MainPage> {
               style: const TextStyle(letterSpacing: 5, fontSize: 30),
             ),
             actions: [
-              IconButton(onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context)=>const SearchPage()));
-              }, 
-              icon: const Icon(Icons.search)),
               IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.shopping_bag_outlined),
+                onPressed: _openSearchPage,
+                icon: const Icon(Icons.search),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      onPressed: _openCartPage,
+                      icon: const Icon(Icons.shopping_bag_outlined),
+                    ),
+                    if (totalCartItems > 0)
+                      Positioned(
+                        top: 2,
+                        right: 1,
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: Text(
+                            totalCartItems > 99
+                                ? '99+'
+                                : totalCartItems.toString(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
       ),
       body: currentBody,
-      bottomNavigationBar: AppBottomNav(currentIndex: currentIndex, onTab: changeTab),
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: currentIndex,
+        onTab: changeTab,
+      ),
     );
   }
 }

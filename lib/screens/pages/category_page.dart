@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import '../../models/product_model.dart';
-import 'product_detail_page.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/product_model.dart';
+import '../../providers/cart_provider.dart';
+import 'product_detail_page.dart';
 
 class CategoryPage extends StatefulWidget {
   final String? initialCategoryId;
@@ -212,6 +216,28 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
+  Future<void> _addProductToCart({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+  }) async {
+    final productModel = ProductModel.fromMap(productId, product);
+
+    await context.read<CartProvider>().addProduct(productModel);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${productModel.name} đã được thêm vào giỏ hàng.'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -263,7 +289,6 @@ class _CategoryPageState extends State<CategoryPage> {
               ...categoryDocs.map((doc) {
                 final data = doc.data();
                 final name = data['name']?.toString() ?? 'Không tên';
-
                 final selected = _selectedCategoryId == doc.id;
 
                 return Padding(
@@ -360,7 +385,6 @@ class _CategoryPageState extends State<CategoryPage> {
           products = [...products]
             ..sort((a, b) {
               final aTime = a.data()['createdAt'] as Timestamp?;
-
               final bTime = b.data()['createdAt'] as Timestamp?;
 
               if (aTime == null && bTime == null) {
@@ -401,138 +425,145 @@ class _CategoryPageState extends State<CategoryPage> {
       },
     );
   }
-  Widget _buildProductCard({
-  required BuildContext context,
-  required String productId,
-  required Map<String, dynamic> product,
-}) {
-  final imageBase64 = (product['image'] ?? '').toString();
-  final imageBytes = _decodeProductImage(imageBase64);
-  final name = (product['name'] ?? 'Không tên').toString();
-  final price = product['price'] ?? 0;
 
-  return GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProductDetailPage(
-            product: ProductModel.fromMap(productId, product),
+  Widget _buildProductCard({
+    required BuildContext context,
+    required String productId,
+    required Map<String, dynamic> product,
+  }) {
+    final imageBase64 = (product['image'] ?? '').toString();
+    final imageBytes = _decodeProductImage(imageBase64);
+    final name = (product['name'] ?? 'Không tên').toString();
+    final price = product['price'] ?? 0;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(
+              product: ProductModel.fromMap(productId, product),
+            ),
           ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.05),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
-      );
-    },
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.05),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(18),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1.05,
-                  child: imageBytes == null
-                      ? Container(
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        )
-                      : Image.memory(
-                          imageBytes,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: Icon(
-                                  Icons.broken_image_outlined,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: _buildWishlistButton(
-                  context: context,
-                  productId: productId,
-                  product: product,
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    height: 1.2,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1.05,
+                    child: imageBytes == null
+                        ? Container(
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: Icon(
+                                Icons.image_outlined,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
+                        : Image.memory(
+                            imageBytes,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _formatPrice(price),
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.black,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        onPressed: () {},
-                      ),
-                    ),
-                  ],
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _buildWishlistButton(
+                    context: context,
+                    productId: productId,
+                    product: product,
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _formatPrice(price),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.black,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          onPressed: () {
+                            _addProductToCart(
+                              context: context,
+                              productId: productId,
+                              product: product,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

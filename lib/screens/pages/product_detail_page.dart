@@ -1,38 +1,77 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../models/product_model.dart';
+import '../../providers/cart_provider.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final ProductModel product;
+
   const ProductDetailPage({super.key, required this.product});
 
   String _formatPrice(String price) {
     final digitsOnly = price.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digitsOnly.isEmpty) return price;
+
+    if (digitsOnly.isEmpty) {
+      return price;
+    }
+
     final buffer = StringBuffer();
+
     for (int i = 0; i < digitsOnly.length; i++) {
       final posFromRight = digitsOnly.length - i;
+
       buffer.write(digitsOnly[i]);
-      if (posFromRight > 1 && posFromRight % 3 == 1) buffer.write('.');
+
+      if (posFromRight > 1 && posFromRight % 3 == 1) {
+        buffer.write('.');
+      }
     }
+
     return buffer.toString();
   }
 
-  Widget _roundIconButton(BuildContext context, IconData icon, VoidCallback onTap) {
+  Widget _roundIconButton(
+    BuildContext context,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 3)),
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.1),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
         ],
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
         icon: Icon(icon, size: 20, color: Colors.black),
         onPressed: onTap,
+      ),
+    );
+  }
+
+  Future<void> _addToCart(BuildContext context) async {
+    await context.read<CartProvider>().addProduct(product);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${product.name} đã được thêm vào giỏ hàng.'),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -52,7 +91,9 @@ class ProductDetailPage extends StatelessWidget {
             automaticallyImplyLeading: false,
             leading: Padding(
               padding: const EdgeInsets.only(left: 16, top: 4),
-              child: _roundIconButton(context, Icons.arrow_back, () => Navigator.pop(context)),
+              child: _roundIconButton(context, Icons.arrow_back, () {
+                Navigator.pop(context);
+              }),
             ),
             actions: [
               Padding(
@@ -65,14 +106,24 @@ class ProductDetailPage extends StatelessWidget {
                   ? Image.memory(
                       base64Decode(product.image),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey.shade100,
-                        child: const Icon(Icons.broken_image, size: 60, color: Colors.grey),
-                      ),
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey.shade100,
+                          child: const Icon(
+                            Icons.broken_image,
+                            size: 60,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
                     )
                   : Container(
                       color: Colors.grey.shade100,
-                      child: const Icon(Icons.image, size: 60, color: Colors.grey),
+                      child: const Icon(
+                        Icons.image,
+                        size: 60,
+                        color: Colors.grey,
+                      ),
                     ),
             ),
           ),
@@ -84,12 +135,20 @@ class ProductDetailPage extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold, height: 1.3),
+                    style: const TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     '${_formatPrice(product.price)} ₫',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: Colors.grey.shade900),
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade900,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Divider(color: Colors.grey.shade200, height: 1),
@@ -100,8 +159,14 @@ class ProductDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product.description.isNotEmpty ? product.description : 'Chưa có mô tả cho sản phẩm này.',
-                    style: TextStyle(fontSize: 14, height: 1.7, color: Colors.grey.shade600),
+                    product.description.isNotEmpty
+                        ? product.description
+                        : 'Chưa có mô tả cho sản phẩm này.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.7,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                   const SizedBox(height: 100),
                 ],
@@ -113,27 +178,32 @@ class ProductDetailPage extends StatelessWidget {
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -3)),
+              BoxShadow(
+                color: Color.fromRGBO(0, 0, 0, 0.06),
+                blurRadius: 12,
+                offset: Offset(0, -3),
+              ),
             ],
           ),
           child: ElevatedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đã thêm vào giỏ hàng'), duration: Duration(seconds: 1)),
-              );
+              _addToCart(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
               elevation: 0,
             ),
             child: const Text(
               'Thêm vào giỏ hàng',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ),

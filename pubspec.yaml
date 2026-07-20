@@ -9,15 +9,22 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
   provider: ^6.1.5+1
   font_awesome_flutter: ^10.10.0
   shared_preferences: ^2.5.5
+
   firebase_core: ^4.0.0
   firebase_auth: ^6.0.0
   cloud_firestore: ^6.0.0
+
   file_picker: ^10.3.2
   http: ^1.2.1
   image: ^4.2.0
+
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -25,5 +32,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/images/

@@ -1,60 +1,51 @@
-// account_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_services.dart';
 
+import 'home_page.dart';
+import 'wishlist_page.dart';
+import 'category_page.dart';
+import '../auth/welcome_screen.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key});
 
-  // Hàm xử lý đăng xuất
   Future<void> _logout(BuildContext context) async {
     await AuthService.logout();
-    if (context.mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-    }
+
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const WelcomePage()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    // Sử dụng tên viết tắt từ email hoặc mặc định
     final String initials = user?.email?.substring(0, 2).toUpperCase() ?? 'LV';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7), // Elegant cream background
-      appBar: AppBar(
-        title: const Text(
-          'Account',
-          style: TextStyle(
-            fontFamily: 'Serif',
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
+      backgroundColor: const Color(0xFFFDFBF7),
+
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             children: [
-              const SizedBox(height: 30),
-              // Profile avatar
+              const SizedBox(height: 60),
+
+              // AVATAR
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFC5A059),
-                    width: 2,
-                  ), // Golden border
+                  border: Border.all(color: const Color(0xFFC5A059), width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundColor: const Color(0xFF1A472A), // Forest green
+                  backgroundColor: const Color(0xFF1A472A),
                   child: Text(
                     initials,
                     style: const TextStyle(
@@ -65,43 +56,88 @@ class AccountPage extends StatelessWidget {
                   ),
                 ),
               ),
+
               const SizedBox(height: 20),
-              // User name
+
               const Text(
                 'Salesperson',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Serif',
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
+
               Text(
                 user?.email ?? 'example@email.com',
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
+
               const SizedBox(height: 40),
 
-              // Account section
+              // ===== ACCOUNT =====
               _buildSectionTitle('My Account'),
               _buildWhiteCard([
-                _buildMenuItem(Icons.shopping_bag_outlined, 'My Orders'),
-                _buildMenuItem(Icons.location_on_outlined, 'Delivery Address'),
-                _buildMenuItem(Icons.person_outline, 'Personal Information'),
-                _buildMenuItem(Icons.payment, 'Payment Methods'),
+                _buildMenuItem(
+                  context,
+                  Icons.shopping_bag_outlined,
+                  'My Orders',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WelcomePage()),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context,
+                  Icons.location_on_outlined,
+                  'Delivery Address',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CategoryPage()),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context,
+                  Icons.person_outline,
+                  'Personal Information',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WishlistPage()),
+                    );
+                  },
+                ),
               ]),
 
               const SizedBox(height: 20),
 
-              // Settings section
+              // ===== SETTINGS =====
               _buildSectionTitle('Settings'),
               _buildWhiteCard([
-                _buildMenuItem(Icons.settings_outlined, 'Account Settings'),
-                _buildMenuItem(Icons.language, 'Language (English)'),
+                _buildMenuItem(
+                  context,
+                  Icons.settings_outlined,
+                  'Account Settings',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WelcomePage()),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context,
+                  Icons.language,
+                  'Language (English)',
+                  () {
+                    print("Change language");
+                  },
+                ),
               ]),
 
               const SizedBox(height: 40),
 
-              // Logout button
+              // LOGOUT BUTTON
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -109,16 +145,14 @@ class AccountPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1A472A),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   child: const Text(
                     'Log out',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
+
               const SizedBox(height: 30),
             ],
           ),
@@ -127,7 +161,6 @@ class AccountPage extends StatelessWidget {
     );
   }
 
-  // Widget tiêu đề nhóm
   Widget _buildSectionTitle(String title) {
     return Align(
       alignment: Alignment.centerLeft,
@@ -145,31 +178,27 @@ class AccountPage extends StatelessWidget {
     );
   }
 
-  // Widget thẻ trắng bo góc
   Widget _buildWhiteCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
       ),
       child: Column(children: children),
     );
   }
 
-  // Widget item menu
-  Widget _buildMenuItem(IconData icon, String title) {
+  Widget _buildMenuItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    VoidCallback onTap,
+  ) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF1A472A), size: 22),
-      title: Text(title, style: const TextStyle(fontSize: 15)),
-      trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
-      onTap: () {},
+      leading: Icon(icon, color: const Color(0xFF1A472A)),
+      title: Text(title),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
     );
   }
 }

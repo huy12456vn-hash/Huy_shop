@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import '../../models/product_model.dart';
-import 'product_detail_page.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../../models/product_model.dart';
+import 'product_detail_page.dart';
 
 class WishlistPage extends StatelessWidget {
   const WishlistPage({super.key});
@@ -146,7 +148,6 @@ class WishlistPage extends StatelessWidget {
 
           wishlistDocuments.sort((first, second) {
             final firstTime = first.data()['createdAt'] as Timestamp?;
-
             final secondTime = second.data()['createdAt'] as Timestamp?;
 
             if (firstTime == null && secondTime == null) {
@@ -171,11 +172,10 @@ class WishlistPage extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 14,
               crossAxisSpacing: 14,
-              childAspectRatio: 0.75,
+              childAspectRatio: 0.62,
             ),
             itemBuilder: (context, index) {
               final document = wishlistDocuments[index];
-
               final product = document.data();
 
               return _buildWishlistCard(
@@ -225,140 +225,139 @@ class WishlistPage extends StatelessWidget {
   }
 
   Widget _buildWishlistCard({
-  required BuildContext context,
-  required String wishlistDocumentId,
-  required Map<String, dynamic> product,
-}) {
-  final String productName = (product['name'] ?? 'Không tên').toString();
+    required BuildContext context,
+    required String wishlistDocumentId,
+    required Map<String, dynamic> product,
+  }) {
+    final String productName = (product['name'] ?? 'Không tên').toString();
 
-  final dynamic productPrice = product['price'] ?? 0;
+    final dynamic productPrice = product['price'] ?? 0;
 
-  final String imageBase64 = (product['image'] ?? '').toString();
+    final String imageBase64 = (product['image'] ?? '').toString();
 
-  final Uint8List? imageBytes = _decodeProductImage(imageBase64);
+    final Uint8List? imageBytes = _decodeProductImage(imageBase64);
 
-  // productId thật của sản phẩm (khác với wishlistDocumentId)
-  final String productId = (product['productId'] ?? '').toString();
+    final String productId = (product['productId'] ?? '').toString();
 
-  return GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProductDetailPage(
-            product: ProductModel.fromMap(productId, product),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(
+              product: ProductModel.fromMap(productId, product),
+            ),
           ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.05),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
-      );
-    },
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.05),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(18),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 1.05,
-                  child: imageBytes == null
-                      ? Container(
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 40,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        )
-                      : Image.memory(
-                          imageBytes,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: Icon(
-                                  Icons.broken_image_outlined,
-                                  size: 40,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
                   ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    tooltip: 'Xóa khỏi Wishlist',
-                    onPressed: () {
-                      _removeFromWishlist(context, wishlistDocumentId);
-                    },
-                    icon: const Icon(
-                      Icons.favorite,
-                      color: Colors.black,
-                      size: 23,
+                  child: AspectRatio(
+                    aspectRatio: 1.15,
+                    child: imageBytes == null
+                        ? Container(
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: Icon(
+                                Icons.image_outlined,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
+                        : Image.memory(
+                            imageBytes,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      tooltip: 'Xóa khỏi Wishlist',
+                      onPressed: () {
+                        _removeFromWishlist(context, wishlistDocumentId);
+                      },
+                      icon: const Icon(
+                        Icons.favorite,
+                        color: Colors.black,
+                        size: 23,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(11, 11, 11, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  productName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.2,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _formatPrice(productPrice),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    productName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.2,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _formatPrice(productPrice),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
