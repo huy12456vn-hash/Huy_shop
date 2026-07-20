@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/cart_item_model.dart';
 import '../../providers/cart_provider.dart';
+import 'checkout_page.dart';
 
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
@@ -28,7 +31,6 @@ class CartPage extends StatelessWidget {
 
     for (int index = 0; index < digits.length; index++) {
       final positionFromRight = digits.length - index;
-
       buffer.write(digits[index]);
 
       if (positionFromRight > 1 && positionFromRight % 3 == 1) {
@@ -47,20 +49,20 @@ class CartPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xóa toàn bộ giỏ hàng?'),
-          content: const Text('Tất cả sản phẩm trong giỏ sẽ bị xóa.'),
+          title: const Text('Clear the entire shopping cart?'),
+          content: const Text('All products in the cart will be removed..'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext, false);
               },
-              child: const Text('Hủy'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
-              child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              child: const Text('Clear', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -76,7 +78,7 @@ class CartPage extends StatelessWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã xóa toàn bộ giỏ hàng.'),
+          content: Text('All products have been removed from the cart.'),
           duration: Duration(seconds: 1),
         ),
       );
@@ -92,20 +94,22 @@ class CartPage extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Xóa sản phẩm?'),
-          content: Text('Bạn có muốn xóa "${item.name}" khỏi giỏ hàng không?'),
+          title: const Text('Remove product?'),
+          content: Text(
+            'Are you sure you want to remove "${item.name}" from the cart?',
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext, false);
               },
-              child: const Text('Hủy'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
-              child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -121,19 +125,24 @@ class CartPage extends StatelessWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã xóa sản phẩm khỏi giỏ hàng.'),
+          content: Text('Product removed from cart.'),
           duration: Duration(seconds: 1),
         ),
       );
     }
   }
 
-  void _showCheckoutMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chức năng thanh toán sẽ được làm ở bước tiếp theo.'),
-        duration: Duration(seconds: 2),
-      ),
+  void _openCheckout(BuildContext context, CartProvider cartProvider) {
+    if (cartProvider.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The shopping cart is empty.')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CheckoutPage()),
     );
   }
 
@@ -149,7 +158,7 @@ class CartPage extends StatelessWidget {
             elevation: 0,
             centerTitle: true,
             title: const Text(
-              'GIỎ HÀNG',
+              'SHOPPING CART',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
@@ -161,7 +170,7 @@ class CartPage extends StatelessWidget {
             actions: [
               if (cartProvider.items.isNotEmpty)
                 IconButton(
-                  tooltip: 'Xóa toàn bộ giỏ hàng',
+                  tooltip: 'Clear entire cart',
                   onPressed: () {
                     _confirmClearCart(context, cartProvider);
                   },
@@ -190,10 +199,10 @@ class CartPage extends StatelessWidget {
             Container(
               width: 110,
               height: 110,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
                     color: Color.fromRGBO(0, 0, 0, 0.05),
                     blurRadius: 14,
@@ -209,12 +218,12 @@ class CartPage extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             const Text(
-              'Giỏ hàng đang trống',
+              'Shopping Cart is Empty',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Hãy thêm sản phẩm bạn yêu thích vào giỏ hàng.',
+              'Add your favorite products to the cart.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
             ),
@@ -236,7 +245,7 @@ class CartPage extends StatelessWidget {
                 ),
               ),
               child: const Text(
-                'Tiếp tục mua sắm',
+                'Continue Shopping',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -333,7 +342,7 @@ class CartPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     IconButton(
-                      tooltip: 'Xóa sản phẩm',
+                      tooltip: 'Remove item',
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -369,14 +378,15 @@ class CartPage extends StatelessWidget {
                         cartProvider.decreaseQuantity(item.productId);
                       },
                     ),
-                    Container(
-                      width: 42,
-                      alignment: Alignment.center,
-                      child: Text(
-                        item.quantity.toString(),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                    SizedBox(
+                      width: 34,
+                      child: Center(
+                        child: Text(
+                          item.quantity.toString(),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -386,16 +396,19 @@ class CartPage extends StatelessWidget {
                         cartProvider.increaseQuantity(item.productId);
                       },
                     ),
-                    const Spacer(),
-                    Flexible(
-                      child: Text(
-                        _formatPrice(item.subtotal),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          _formatPrice(item.subtotal),
+                          maxLines: 1,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -448,11 +461,11 @@ class CartPage extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Tổng ${cartProvider.totalItems} sản phẩm',
+                  'Total ${cartProvider.totalItems} items',
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
                 const Spacer(),
-                const Text('Tổng tiền:', style: TextStyle(fontSize: 14)),
+                const Text('Total:', style: TextStyle(fontSize: 14)),
                 const SizedBox(width: 8),
                 Text(
                   _formatPrice(cartProvider.totalPrice),
@@ -466,7 +479,7 @@ class CartPage extends StatelessWidget {
             const SizedBox(height: 14),
             ElevatedButton(
               onPressed: () {
-                _showCheckoutMessage(context);
+                _openCheckout(context, cartProvider);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
@@ -478,7 +491,7 @@ class CartPage extends StatelessWidget {
                 ),
               ),
               child: const Text(
-                'Thanh toán',
+                'Checkout',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),

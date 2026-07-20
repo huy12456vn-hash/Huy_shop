@@ -65,7 +65,7 @@ class _CategoryPageState extends State<CategoryPage> {
       }
     }
 
-    return '${buffer.toString()} VND';
+    return '${buffer.toString()} ₫';
   }
 
   String _wishlistDocumentId({
@@ -84,9 +84,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng đăng nhập để sử dụng Wishlist.'),
-        ),
+        const SnackBar(content: Text('Please sign in to use the wishlist.')),
       );
       return;
     }
@@ -110,7 +108,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã xóa sản phẩm khỏi Wishlist.'),
+            content: Text('Removed from wishlist.'),
             duration: Duration(seconds: 1),
           ),
         );
@@ -133,7 +131,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã thêm sản phẩm vào Wishlist.'),
+            content: Text('Added to wishlist.'),
             duration: Duration(seconds: 1),
           ),
         );
@@ -144,7 +142,7 @@ class _CategoryPageState extends State<CategoryPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể cập nhật Wishlist: $error')),
+        SnackBar(content: Text('Unable to update wishlist: $error')),
       );
     }
   }
@@ -209,7 +207,9 @@ class _CategoryPageState extends State<CategoryPage> {
         onPressed: onPressed,
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: Colors.black,
+          color: isFavorite
+              ? Colors.black
+              : const Color.fromARGB(255, 19, 12, 12),
           size: 21,
         ),
       ),
@@ -232,7 +232,7 @@ class _CategoryPageState extends State<CategoryPage> {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${productModel.name} đã được thêm vào giỏ hàng.'),
+        content: Text('${productModel.name} was added to your cart.'),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -264,7 +264,7 @@ class _CategoryPageState extends State<CategoryPage> {
           if (snapshot.hasError) {
             return const Center(
               child: Text(
-                'Không tải được danh mục',
+                'Unable to load categories',
                 style: TextStyle(color: Colors.grey),
               ),
             );
@@ -288,7 +288,7 @@ class _CategoryPageState extends State<CategoryPage> {
               const SizedBox(width: 8),
               ...categoryDocs.map((doc) {
                 final data = doc.data();
-                final name = data['name']?.toString() ?? 'Không tên';
+                final name = data['name']?.toString() ?? 'Unnamed';
                 final selected = _selectedCategoryId == doc.id;
 
                 return Padding(
@@ -361,7 +361,7 @@ class _CategoryPageState extends State<CategoryPage> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Đã xảy ra lỗi khi tải sản phẩm.\n${snapshot.error}',
+                'Unable to load products.\n${snapshot.error}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey),
               ),
@@ -372,7 +372,7 @@ class _CategoryPageState extends State<CategoryPage> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(
             child: Text(
-              'Không có sản phẩm nào trong danh mục này.',
+              'No products were found in this category.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
@@ -404,13 +404,13 @@ class _CategoryPageState extends State<CategoryPage> {
         }
 
         return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
           itemCount: products.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
-            childAspectRatio: 0.65,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.70,
           ),
           itemBuilder: (context, index) {
             final productDocument = products[index];
@@ -433,7 +433,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }) {
     final imageBase64 = (product['image'] ?? '').toString();
     final imageBytes = _decodeProductImage(imageBase64);
-    final name = (product['name'] ?? 'Không tên').toString();
+    final name = (product['name'] ?? 'Unnamed').toString();
     final price = product['price'] ?? 0;
 
     return GestureDetector(
@@ -444,6 +444,7 @@ class _CategoryPageState extends State<CategoryPage> {
           MaterialPageRoute(
             builder: (context) => ProductDetailPage(
               product: ProductModel.fromMap(productId, product),
+              productId: productId,
             ),
           ),
         );
@@ -471,7 +472,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     top: Radius.circular(18),
                   ),
                   child: AspectRatio(
-                    aspectRatio: 1.05,
+                    aspectRatio: 1.15,
                     child: imageBytes == null
                         ? Container(
                             color: Colors.grey.shade200,
