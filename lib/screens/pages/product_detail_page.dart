@@ -24,7 +24,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
   late final AnimationController _heartController;
   late final Animation<double> _heartScale;
 
-  // Size mặc định dùng khi sản phẩm chưa có size nào trong Firestore.
+  // Default size list used when a product has no sizes in Firestore.
   static const List<String> _fallbackSizes = ['S', 'M', 'L', 'XL'];
 
   late List<String> _availableSizes;
@@ -59,8 +59,8 @@ class _ProductDetailPageState extends State<ProductDetailPage>
       CurvedAnimation(parent: _heartController, curve: Curves.easeOutBack),
     );
 
-    // Ưu tiên dùng size thật của sản phẩm (product.sizes), nếu rỗng thì
-    // dùng danh sách mặc định để tránh giao diện Size bị trống.
+    // Prefer the product's real sizes (product.sizes); if empty, use the default list
+    // to avoid an empty Size UI.
     final productSizes = product.sizes;
     _availableSizes = productSizes.isNotEmpty ? productSizes : _fallbackSizes;
     _selectedSize = _availableSizes.first;

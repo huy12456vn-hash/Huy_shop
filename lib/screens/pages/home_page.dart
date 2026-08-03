@@ -77,7 +77,7 @@ class HomePage extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     _buildSectionHeader(
-                      title: 'TẤT CẢ SẢN PHẨM',
+                      title: 'ALL PRODUCTS',
                       onViewAll: () {
                         _openCategoryPage(context);
                       },
@@ -180,7 +180,7 @@ class HomePage extends StatelessWidget {
           if (snapshot.hasError) {
             return const Center(
               child: Text(
-                'Không tải được danh mục',
+                'Unable to load categories',
                 style: TextStyle(color: Colors.grey),
               ),
             );
@@ -189,7 +189,7 @@ class HomePage extends StatelessWidget {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
-                'Chưa có danh mục',
+                'No categories yet',
                 style: TextStyle(color: Colors.grey),
               ),
             );
@@ -208,7 +208,7 @@ class HomePage extends StatelessWidget {
               final categoryDoc = categoryDocs[index];
               final categoryData = categoryDoc.data();
 
-              final categoryName = (categoryData['name'] ?? 'Không tên')
+              final categoryName = (categoryData['name'] ?? 'Untitled')
                   .toString();
 
               return InkWell(
@@ -256,63 +256,63 @@ class HomePage extends StatelessWidget {
 
     if (name.contains('handbag') ||
         name.contains('bag') ||
-        name.contains('túi')) {
+        name.contains('bag')) {
       return Icons.shopping_bag_outlined;
     }
 
     if (name.contains('accessories') ||
         name.contains('accessory') ||
         name.contains('accessor') ||
-        name.contains('phụ kiện')) {
+        name.contains('accessories')) {
       return Icons.diamond_outlined;
     }
 
     if ((name.contains('women') ||
             name.contains('woman') ||
-            name.contains('nữ')) &&
+            name.contains('women')) &&
         (name.contains('shoe') ||
             name.contains('shoes') ||
-            name.contains('giày'))) {
+            name.contains('shoes'))) {
       return Icons.auto_awesome_outlined;
     }
 
     if ((name.contains('men') ||
             name.contains('man') ||
-            name.contains('nam')) &&
+            name.contains('men')) &&
         (name.contains('shoe') ||
             name.contains('shoes') ||
-            name.contains('giày'))) {
+            name.contains('shoes'))) {
       return Icons.business_center_outlined;
     }
 
     if (name.contains('shoe') ||
         name.contains('shoes') ||
-        name.contains('giày') ||
+        name.contains('shoes') ||
         name.contains('sneaker')) {
       return Icons.style_outlined;
     }
 
     if (name.contains('women') ||
         name.contains('woman') ||
-        name.contains('nữ')) {
+        name.contains('women')) {
       return Icons.female;
     }
 
-    if (name.contains('men') || name.contains('man') || name.contains('nam')) {
+    if (name.contains('men') || name.contains('man') || name.contains('men')) {
       return Icons.male;
     }
 
-    if (name.contains('jacket') || name.contains('áo khoác')) {
+    if (name.contains('jacket') || name.contains('jacket')) {
       return Icons.dry_cleaning_outlined;
     }
 
     if (name.contains('shirt') ||
         name.contains('t-shirt') ||
-        name.contains('áo')) {
+        name.contains('shirt')) {
       return Icons.checkroom_outlined;
     }
 
-    if (name.contains('watch') || name.contains('đồng hồ')) {
+    if (name.contains('watch') || name.contains('watch')) {
       return Icons.watch_outlined;
     }
 
@@ -372,7 +372,7 @@ class HomePage extends StatelessWidget {
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng đăng nhập để sử dụng Wishlist.'),
+          content: Text('Please sign in to use Wishlist.'),
         ),
       );
 
@@ -398,7 +398,7 @@ class HomePage extends StatelessWidget {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã xóa sản phẩm khỏi Wishlist.'),
+            content: Text('Item removed from Wishlist.'),
             duration: Duration(seconds: 1),
           ),
         );
@@ -421,7 +421,7 @@ class HomePage extends StatelessWidget {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã thêm sản phẩm vào Wishlist.'),
+            content: Text('Item added to Wishlist.'),
             duration: Duration(seconds: 1),
           ),
         );
@@ -432,7 +432,7 @@ class HomePage extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể cập nhật Wishlist: $error')),
+        SnackBar(content: Text('Unable to update Wishlist: $error')),
       );
     }
   }
@@ -494,7 +494,7 @@ class HomePage extends StatelessWidget {
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        tooltip: isFavorite ? 'Xóa khỏi Wishlist' : 'Thêm vào Wishlist',
+        tooltip: isFavorite ? 'Remove from Wishlist' : 'Add to Wishlist',
         onPressed: onPressed,
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -522,7 +522,7 @@ class HomePage extends StatelessWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${productModel.name} đã được thêm vào giỏ hàng.'),
+        content: Text('${productModel.name} has been added to the cart.'),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -538,7 +538,7 @@ class HomePage extends StatelessWidget {
 
     final imageBytes = _decodeProductImage(imageBase64);
 
-    final name = (product['name'] ?? 'Không tên').toString();
+    final name = (product['name'] ?? 'Untitled').toString();
 
     final price = product['price'] ?? 0;
 
@@ -693,7 +693,7 @@ class HomePage extends StatelessWidget {
           if (snapshot.hasError) {
             return const Center(
               child: Text(
-                'Không tải được sản phẩm',
+                'Unable to load products',
                 style: TextStyle(color: Colors.grey),
               ),
             );
@@ -746,7 +746,7 @@ class HomePage extends StatelessWidget {
         return const Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
           child: Center(
-            child: Text('Không tải được sản phẩm', style: TextStyle(color: Colors.grey)),
+              child: Text('Unable to load products', style: TextStyle(color: Colors.grey)),
           ),
         );
       }
@@ -754,7 +754,7 @@ class HomePage extends StatelessWidget {
       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
         return const Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: Text('Chưa có sản phẩm nào.')),
+          child: Center(child: Text('No products yet.')),
         );
       }
 

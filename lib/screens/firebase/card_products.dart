@@ -40,7 +40,7 @@ class ProductCard extends StatelessWidget {
     return '\$${buffer.toString()}.$fraction';
   }
 
-  // Chip nhỏ hiển thị 1 size (ví dụ: S, M, L, XL...)
+  // Small chip showing one size (for example: S, M, L, XL...)
   Widget _buildSizeChip(String size) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -64,13 +64,13 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageBase64 = (product['image'] ?? '').toString();
     final imageBytes = _decodeImage(imageBase64);
-    final name = (product['name'] ?? 'Không tên').toString();
+    final name = (product['name'] ?? 'Untitled').toString();
     final price = product['price'] ?? 0;
     final sizes =
         (product['sizes'] as List?)?.map((e) => e.toString()).toList() ??
         const <String>[];
 
-    // Chỉ hiện tối đa 3 size trên card, còn lại gộp thành "+n" cho gọn.
+    // Show at most 3 sizes on the card; the rest are grouped as "+n" for brevity.
     const maxVisibleSizes = 3;
     final visibleSizes = sizes.take(maxVisibleSizes).toList();
     final remainingSizesCount = sizes.length - visibleSizes.length;
@@ -108,7 +108,7 @@ class ProductCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ẢNH — tỉ lệ cố định, không phụ thuộc flex của Column ngoài
+            // IMAGE — fixed ratio, independent of the outer Column flex
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
@@ -163,7 +163,7 @@ class ProductCard extends StatelessWidget {
               ),
             ),
 
-            // NỘI DUNG — không dùng Spacer, không bị giãn trống
+            // CONTENT — no Spacer, so it does not stretch awkwardly
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               child: Column(

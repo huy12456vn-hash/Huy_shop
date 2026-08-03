@@ -48,7 +48,7 @@ class AuthService {
   }) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      // Lưu lịch sử đăng nhập local
+      // Save local login history
       await PreferenceService.addHistory(email);
 
       return null; // Success
@@ -65,7 +65,7 @@ class AuthService {
   }
 
   /// ============================
-  /// USER HIỆN TẠI
+  /// CURRENT USER
   /// ============================
   static Future<UserModel?> currentUser() async {
     User? user = _auth.currentUser;
@@ -119,7 +119,7 @@ class AuthService {
   /// CHECK IF EMAIL EXISTS
   /// ============================
   static Future<bool> isExistEmail(String email) async {
-    // FirebaseAuth sẽ tự báo lỗi nếu email trùng trong lúc register
+    // FirebaseAuth will report an error automatically if the email already exists during registration
     return false;
   }
 

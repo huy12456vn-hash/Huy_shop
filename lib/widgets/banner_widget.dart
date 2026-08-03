@@ -65,7 +65,7 @@ class _BannerWidgetState extends State<BannerWidget> {
       duration: _pageAnimationDuration,
       curve: Curves.easeInOut,
     ).catchError((error) {
-      // Xử lý nếu animation thất bại
+      // Handle the case where the animation fails
       debugPrint('Banner animation error: $error');
     });
   }
@@ -75,7 +75,7 @@ class _BannerWidgetState extends State<BannerWidget> {
       _currentIndex = index;
     });
 
-    // Reset timer sau khi người dùng vuốt (đợi 1 giây)
+    // Reset the timer after the user swipes (wait 1 second)
     _timer?.cancel();
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {

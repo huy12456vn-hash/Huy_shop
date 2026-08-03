@@ -35,8 +35,8 @@ class ChatService {
       botReplyText = result.text;
       productIds = result.productIds;
     } catch (e) {
-      print('LỖI THẬT: $e');
-      botReplyText = 'Xin lỗi, chatbot đang gặp lỗi. Vui lòng thử lại sau.';
+      print('REAL ERROR: $e');
+      botReplyText = 'Xin lỗi, chatbot đang gặp sự cố. Vui lòng thử lại sau.';
     }
 
     await _messagesRef.add({
@@ -63,29 +63,29 @@ class ChatService {
   Future<_AIResult> askAI(String message) async {
     if (apiKey.isEmpty) {
       throw Exception(
-        'Chưa cấu hình GROQ_API_KEY. Chạy app với: flutter run --dart-define=GROQ_API_KEY=your_key',
+        'GROQ_API_KEY is not configured. Run the app with: flutter run --dart-define=GROQ_API_KEY=your_key',
       );
     }
 
     final catalog = await _fetchProductCatalog();
     final catalogText = catalog
         .map((p) =>
-            '- id: ${p['id']}, tên: ${p['name']}, giá: \$${p['price']}, danh mục: ${p['category']}')
+            '- id: ${p['id']}, name: ${p['name']}, price: \$${p['price']}, category: ${p['category']}')
         .join('\n');
 
     final systemPrompt = '''
-Bạn là chatbot tư vấn của cửa hàng Gucci.
+Bạn là trợ lý bán hàng cho cửa hàng Gucci.
 
-- Trả lời bằng tiếng Việt, lịch sự, như một nhân viên bán hàng.
-- Dưới đây là danh sách sản phẩm hiện có (id, tên, giá, danh mục). Chỉ được giới thiệu sản phẩm có trong danh sách này, không được bịa sản phẩm không có:
+- Trả lời bằng tiếng Việt, lịch sự và như một nhân viên bán hàng.
+- Dưới đây là danh sách sản phẩm hiện có (id, tên, giá, danh mục). Chỉ đề xuất các sản phẩm có trong danh sách này, không bịa sản phẩm không có:
 $catalogText
 
 QUAN TRỌNG - định dạng bắt buộc:
-Sau khi trả lời khách hàng bình thường, LUÔN thêm một dòng cuối cùng theo đúng định dạng:
+Sau khi trả lời khách hàng bình thường, luôn thêm một dòng cuối cùng đúng theo định dạng:
 PRODUCT_IDS: id1,id2
-(liệt kê id của các sản phẩm bạn vừa giới thiệu, cách nhau bằng dấu phẩy)
-Nếu không giới thiệu sản phẩm cụ thể nào, viết: PRODUCT_IDS: none
-Không thêm nội dung nào khác sau dòng PRODUCT_IDS.
+(liệt kê các id sản phẩm bạn vừa giới thiệu, cách nhau bằng dấu phẩy)
+Nếu không giới thiệu sản phẩm cụ thể nào, hãy viết: PRODUCT_IDS: none
+Không thêm nội dung nào sau dòng PRODUCT_IDS.
 ''';
 
     final response = await http.post(

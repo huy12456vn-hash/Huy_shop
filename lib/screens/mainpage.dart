@@ -113,7 +113,7 @@ class _MainPageState extends State<MainPage> {
               IconButton(
                 onPressed: _openChatPage,
                 icon: const Icon(Icons.chat_bubble_outline),
-                tooltip: 'Chat hỗ trợ',
+                tooltip: 'Support Chat',
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 6),

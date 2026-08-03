@@ -19,7 +19,7 @@ class PreferenceService {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.setString(userKey, jsonEncode(user.toJson()));
-    // in ra màn hình để test
+    // print to the screen for testing
     print("===== SAVE USER =====");
     print("Name     : ${user.fullName}");
     print("Email    : ${user.email}");

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import'../pages/product_detail_page.dart';
-import '../../services/chat_service.dart'; // chỉnh lại đường dẫn import đúng với project của bạn
+import '../../services/chat_service.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -218,7 +218,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F1F1F),
         foregroundColor: Colors.white,
-        title: const Text('Gucci Chat Support'),
+        title: const Text('Hỗ trợ chat Gucci'),
         elevation: 0,
       ),
       body: Column(
@@ -233,7 +233,7 @@ class _ChatPageState extends State<ChatPage> {
                 final messages = snapshot.data?.docs ?? [];
                 if (messages.isEmpty) {
                   return const Center(
-                    child: Text('Bắt đầu cuộc trò chuyện!'),
+                    child: Text('Bắt đầu trò chuyện!'),
                   );
                 }
 
@@ -266,7 +266,7 @@ class _ChatPageState extends State<ChatPage> {
                     minLines: 1,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: 'Nhập câu hỏi...',
+                      hintText: 'Nhập tin nhắn...', 
                       filled: true,
                       fillColor: const Color(0xFFF4F4F4),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),

@@ -21,13 +21,13 @@ class _ProductFbPageState extends State<ProductPage> {
       FirebaseFirestore.instance.collection('categories');
   final TextEditingController _searchController = TextEditingController();
 
-  Uint8List? imageBytes; // ảnh gốc mới chọn (để preview ngay)
-  String? imageBase64; // chuỗi base64 sẽ lưu vào Firestore
-  bool isProcessingImage = false; // đang resize/encode ảnh
+  Uint8List? imageBytes; // original image selected for preview
+  String? imageBase64; // base64 string to be stored in Firestore
+  bool isProcessingImage = false; // resizing/encoding the image
 
-  // Giới hạn an toàn cho 1 field string trong Firestore (~1MB/document).
-  // Base64 tăng ~33% dung lượng nên set ngưỡng thấp hơn nhiều để an toàn.
-  static const int _maxBase64Length = 700000; // ~700KB base64 (~500KB ảnh gốc)
+  // Safe size limit for a single Firestore string field (~1MB/document).
+  // Base64 adds about 33% overhead, so the threshold is kept lower for safety.
+  static const int _maxBase64Length = 700000; // ~700KB base64 (~500KB original image)
 
   @override
   void dispose() {
@@ -42,7 +42,7 @@ class _ProductFbPageState extends State<ProductPage> {
     );
     final descriptionController = TextEditingController(text: product?['description']?.toString() ?? '');
 
-    // Reset đầy đủ mỗi lần mở dialog, tránh dính dữ liệu ảnh của lần trước
+    // Fully reset each time the dialog opens to avoid carrying over the previous image
     imageBytes = null;
     imageBase64 = product?['image']?.toString();
     isProcessingImage = false;
@@ -55,7 +55,7 @@ class _ProductFbPageState extends State<ProductPage> {
       final categoryData = doc.data();
       return DropdownMenuItem<String>(
         value: doc.id,
-        child: Text(categoryData['name']?.toString() ?? 'Không tên'),
+        child: Text(categoryData['name']?.toString() ?? 'Untitled'),
       );
     }).toList();
 
@@ -67,7 +67,7 @@ class _ProductFbPageState extends State<ProductPage> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: Text(product == null ? 'Thêm sản phẩm' : 'Sửa sản phẩm'),
+              title: Text(product == null ? 'Add Product' : 'Edit Product'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -75,7 +75,7 @@ class _ProductFbPageState extends State<ProductPage> {
                     TextField(
                       controller: nameController,
                       decoration: const InputDecoration(
-                        labelText: 'Tên sản phẩm',
+                        labelText: 'Product Name',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -85,7 +85,7 @@ class _ProductFbPageState extends State<ProductPage> {
                       keyboardType: TextInputType.number,
                       inputFormatters: [_ThousandsSeparatorInputFormatter()],
                       decoration: const InputDecoration(
-                        labelText: 'Giá sản phẩm',
+                        labelText: 'Product Price',
                         border: OutlineInputBorder(),
                         suffixText: '\$',
                       ),
@@ -95,7 +95,7 @@ class _ProductFbPageState extends State<ProductPage> {
                       controller: descriptionController,
                       maxLines: 3,
                       decoration: const InputDecoration(
-                        labelText: 'Mô tả',
+                        labelText: 'Description',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -103,7 +103,7 @@ class _ProductFbPageState extends State<ProductPage> {
                     DropdownButtonFormField<String>(
                       value: selectedCategoryId,
                       decoration: const InputDecoration(
-                        labelText: 'Danh mục',
+                        labelText: 'Category',
                         border: OutlineInputBorder(),
                       ),
                       items: categoryItems,
@@ -161,7 +161,7 @@ class _ProductFbPageState extends State<ProductPage> {
                                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                     )
                                   : const Icon(Icons.image),
-                              label: Text(isProcessingImage ? "Đang xử lý ảnh..." : "Import Image"),
+                              label: Text(isProcessingImage ? "Processing image..." : "Import Image"),
                               onPressed: isProcessingImage
                                   ? null
                                   : () async {
@@ -185,17 +185,17 @@ class _ProductFbPageState extends State<ProductPage> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    // reset khi hủy để không dính dữ liệu ảnh cho lần mở dialog sau
+                    // reset when canceling to avoid carrying the image into the next dialog
                     imageBytes = null;
                     imageBase64 = null;
                     isProcessingImage = false;
                     Navigator.pop(context);
                   },
-                  child: const Text('Hủy'),
+                  child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: isProcessingImage
-                      ? null // khóa nút Lưu khi ảnh chưa xử lý xong
+                      ? null // disable Save until the image is fully processed
                       : () async {
                           final name = nameController.text.trim();
                           final priceDigitsOnly = priceController.text.replaceAll('.', '').trim();
@@ -205,7 +205,7 @@ class _ProductFbPageState extends State<ProductPage> {
                           if (name.isEmpty || price == null || selectedCategoryId == null) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Vui lòng nhập đủ thông tin bắt buộc.')),
+                              const SnackBar(content: Text('Please enter all required information.')),
                             );
                             return;
                           }
@@ -248,7 +248,7 @@ class _ProductFbPageState extends State<ProductPage> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('Lưu'),
+                      : const Text('Save'),
                 ),
               ],
             );
@@ -261,7 +261,7 @@ class _ProductFbPageState extends State<ProductPage> {
   Future<void> _deleteProduct(String id) async {
     await _productsRef.doc(id).delete();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm!')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Product deleted!')));
   }
 
   Widget _buildInfoChip(IconData icon, String label) {
@@ -282,9 +282,9 @@ class _ProductFbPageState extends State<ProductPage> {
     );
   }
 
-  /// Chọn ảnh, resize xuống kích thước nhỏ rồi encode base64 để lưu thẳng
-  /// vào Firestore (không cần Firebase Storage / gói Blaze).
-  /// [onError] dùng để báo lỗi (ví dụ ảnh vẫn quá nặng) ra SnackBar.
+  /// Pick an image, resize it, and encode it to base64 to save directly
+  /// to Firestore (no Firebase Storage or Blaze plan required).
+  /// [onError] reports errors (for example, when the image is still too large) via SnackBar.
   Future<void> pickImage(VoidCallback refresh, void Function(String message) onError) async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -300,30 +300,30 @@ class _ProductFbPageState extends State<ProductPage> {
       isProcessingImage = true;
       refresh();
 
-      // Chạy trực tiếp trên main thread (không dùng compute/Isolate vì
-      // Isolate.spawn không được hỗ trợ đầy đủ trên Flutter Web và hay
-      // gây lỗi). Ảnh đã được giới hạn kích thước nên xử lý vẫn đủ nhanh.
+      // Run directly on the main thread (not using compute/Isolate because
+      // Isolate.spawn is not fully supported on Flutter Web and can cause issues).
+      // The image is already constrained in size, so processing remains fast.
       await Future.delayed(Duration.zero);
       final resizedBytes = _resizeAndEncodeJpg(originalBytes);
 
       if (resizedBytes == null) {
-        onError('Không thể xử lý ảnh này. Vui lòng chọn ảnh khác.');
+        onError('Unable to process this image. Please choose another one.');
         return;
       }
 
       final encoded = base64Encode(resizedBytes);
 
       if (encoded.length > _maxBase64Length) {
-        onError('Ảnh vẫn quá lớn sau khi nén (${(encoded.length / 1024).toStringAsFixed(0)}KB). '
-            'Vui lòng chọn ảnh có độ phân giải nhỏ hơn.');
+        onError('The image is still too large after compression (${(encoded.length / 1024).toStringAsFixed(0)}KB). '
+            'Please choose an image with a smaller resolution.');
         return;
       }
 
       imageBytes = resizedBytes;
       imageBase64 = encoded;
     } catch (e) {
-      debugPrint('Lỗi xử lý ảnh: $e');
-      onError('Đã xảy ra lỗi khi xử lý ảnh.');
+      debugPrint('Image processing error: $e');
+      onError('An error occurred while processing the image.');
     } finally {
       isProcessingImage = false;
       refresh();
@@ -346,7 +346,7 @@ class _ProductFbPageState extends State<ProductPage> {
               controller: _searchController,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm sản phẩm...',
+                hintText: 'Search products...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 suffixIcon: _searchController.text.isEmpty
@@ -369,10 +369,10 @@ class _ProductFbPageState extends State<ProductPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (streamSnapshot.hasError) {
-                  return const Center(child: Text('Đã xảy ra lỗi khi tải dữ liệu.'));
+                  return const Center(child: Text('An error occurred while loading data.'));
                 }
                 if (!streamSnapshot.hasData || streamSnapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('Chưa có sản phẩm nào.'));
+                  return const Center(child: Text('No products yet.'));
                 }
 
                 final products = streamSnapshot.data!.docs.map((doc) {
@@ -389,7 +389,7 @@ class _ProductFbPageState extends State<ProductPage> {
                 }).toList();
 
                 if (filteredProducts.isEmpty) {
-                  return const Center(child: Text('Không tìm thấy sản phẩm phù hợp.'));
+                  return const Center(child: Text('No matching products found.'));
                 }
 
                 return ListView.builder(
@@ -398,7 +398,7 @@ class _ProductFbPageState extends State<ProductPage> {
                   itemBuilder: (context, index) {
                     final product = filteredProducts[index];
                     final imageBase64Str = product['image']?.toString() ?? '';
-                    final categoryName = product['categoryName']?.toString() ?? 'Chưa có danh mục';
+                    final categoryName = product['categoryName']?.toString() ?? 'No category';
                     final description = product['description']?.toString() ?? '';
                     final price = product['price'] ?? 0;
 
@@ -442,7 +442,7 @@ class _ProductFbPageState extends State<ProductPage> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        product['name']?.toString() ?? 'Không tên',
+                                        product['name']?.toString() ?? 'Untitled',
                                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                       ),
                                     ),
@@ -483,8 +483,8 @@ class _ProductFbPageState extends State<ProductPage> {
                                         spacing: 8,
                                         runSpacing: 8,
                                         children: [
-                                          _buildInfoChip(Icons.star_border, 'Mới'),
-                                          _buildInfoChip(Icons.local_shipping_outlined, 'Giao hàng'),
+                                          _buildInfoChip(Icons.star_border, 'New'),
+                                          _buildInfoChip(Icons.local_shipping_outlined, 'Shipping'),
                                           _buildInfoChip(Icons.favorite_border, 'Hot'),
                                         ],
                                       ),
@@ -498,19 +498,19 @@ class _ProductFbPageState extends State<ProductPage> {
                                       onPressed: () => showDialog(
                                         context: context,
                                         builder: (context) => AlertDialog(
-                                          title: const Text('Xác nhận xóa'),
-                                          content: const Text('Bạn có chắc muốn xóa sản phẩm này?'),
+                                          title: const Text('Confirm Delete'),
+                                          content: const Text('Are you sure you want to delete this product?'),
                                           actions: [
                                             TextButton(
                                               onPressed: () => Navigator.pop(context),
-                                              child: const Text('Hủy'),
+                                              child: const Text('Cancel'),
                                             ),
                                             TextButton(
                                               onPressed: () {
                                                 Navigator.pop(context);
                                                 _deleteProduct(product['id'].toString());
                                               },
-                                              child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+                                              child: const Text('Delete', style: TextStyle(color: Colors.red)),
                                             ),
                                           ],
                                         ),
@@ -535,8 +535,8 @@ class _ProductFbPageState extends State<ProductPage> {
   }
 }
 
-/// Chèn dấu chấm phân cách hàng nghìn khi người dùng gõ số, ví dụ
-/// gõ "11000000" sẽ tự hiển thị thành "11.000.000".
+/// Insert thousand separators while the user types numbers, for example
+/// typing "11000000" will display as "11.000.000".
 class _ThousandsSeparatorInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -558,7 +558,7 @@ class _ThousandsSeparatorInputFormatter extends TextInputFormatter {
   }
 }
 
-/// Chèn dấu chấm mỗi 3 chữ số tính từ bên phải, ví dụ "11000000" -> "11.000.000".
+/// Insert a comma every 3 digits from the right, for example "11000000" -> "11.000.000".
 String _formatDigitsWithCommas(String digitsOnly) {
   final buffer = StringBuffer();
   for (int i = 0; i < digitsOnly.length; i++) {
@@ -571,8 +571,8 @@ String _formatDigitsWithCommas(String digitsOnly) {
   return buffer.toString();
 }
 
-/// Format giá trị 'price' lấy từ Firestore (num) thành chuỗi theo kiểu USD
-/// để hiển thị sẵn trong ô nhập khi sửa sản phẩm.
+/// Format the 'price' value from Firestore (num) as a USD-style string
+/// so it is displayed directly in the input field when editing a product.
 String _formatPriceForDisplay(dynamic priceValue) {
   if (priceValue == null) return '';
   final priceNum = priceValue is num ? priceValue : num.tryParse(priceValue.toString());
@@ -585,8 +585,8 @@ String _formatPriceForDisplay(dynamic priceValue) {
   return _formatDigitsWithCommas(digits) + '.$fraction';
 }
 
-/// Resize ảnh về cạnh dài nhất 600px và encode lại thành JPEG chất lượng vừa
-/// phải để giảm dung lượng trước khi base64.
+/// Resize the image to a maximum dimension of 600px and re-encode it as JPEG
+/// at medium quality to reduce size before base64 encoding.
 Uint8List? _resizeAndEncodeJpg(Uint8List inputBytes) {
   final decoded = img.decodeImage(inputBytes);
   if (decoded == null) return null;

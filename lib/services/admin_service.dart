@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AdminService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  /// Đăng nhập Admin
-  /// Chỉ những tài khoản có UID trong collection `admins`
-  /// mới được phép đăng nhập vào Admin Panel.
+  /// Admin login
+  /// Only accounts with a UID in the `admins` collection
+  /// are allowed to sign in to the Admin Panel.
   static Future<String?> signInAdmin({
     required String email,
     required String password,
@@ -23,7 +23,7 @@ class AdminService {
         return 'Authentication failed.';
       }
 
-      // Kiểm tra UID có trong collection admins không
+      // Check whether the UID exists in the admins collection
       final adminDoc =
           await _firestore.collection('admins').doc(user.uid).get();
 
@@ -54,7 +54,7 @@ class AdminService {
       return 'An error occurred: $e';
     }
   }
-  /// Kiểm tra người dùng hiện tại có phải Admin không
+  /// Check whether the current user is an Admin
   static Future<bool> isCurrentUserAdmin() async {
     final user = _auth.currentUser;
 
@@ -70,12 +70,12 @@ class AdminService {
       return false;
     }
   }
-  /// Đăng xuất
+  /// Log out
   static Future<void> signOutAdmin() async {
     await _auth.signOut();
   }
 
-  /// Kiểm tra đã đăng nhập chưa
+  /// Check whether the user is already logged in
   static bool isSignedIn() {
     return _auth.currentUser != null;
   }

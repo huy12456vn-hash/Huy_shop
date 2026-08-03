@@ -37,7 +37,7 @@ class WishlistPage extends StatelessWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Đã xóa sản phẩm khỏi Wishlist'),
+          content: Text('Item removed from wishlist'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -48,7 +48,7 @@ class WishlistPage extends StatelessWidget {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Không thể xóa sản phẩm: $error')));
+      ).showSnackBar(SnackBar(content: Text('Unable to remove item: $error')));
     }
   }
 
@@ -96,12 +96,12 @@ class WishlistPage extends StatelessWidget {
                 Icon(Icons.person_outline, size: 75, color: Colors.black38),
                 SizedBox(height: 18),
                 Text(
-                  'Bạn chưa đăng nhập',
+                  'You are not signed in',
                   style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Vui lòng đăng nhập để xem sản phẩm yêu thích.',
+                  'Please sign in to view your favorite products.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -135,7 +135,7 @@ class WishlistPage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(30),
                 child: Text(
-                  'Không thể tải Wishlist.\n${snapshot.error}',
+                  'Unable to load wishlist.\n${snapshot.error}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.grey),
                 ),
@@ -210,7 +210,7 @@ class WishlistPage extends StatelessWidget {
             ),
             SizedBox(height: 10),
             Text(
-              'Nhấn vào biểu tượng trái tim để lưu những sản phẩm bạn yêu thích.',
+              'Tap the heart icon to save your favorite products.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -229,7 +229,7 @@ class WishlistPage extends StatelessWidget {
     required String wishlistDocumentId,
     required Map<String, dynamic> product,
   }) {
-    final String productName = (product['name'] ?? 'Không tên').toString();
+    final String productName = (product['name'] ?? 'Untitled').toString();
 
     final dynamic productPrice = product['price'] ?? 0;
 
@@ -316,7 +316,7 @@ class WishlistPage extends StatelessWidget {
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      tooltip: 'Xóa khỏi Wishlist',
+                      tooltip: 'Remove from Wishlist',
                       onPressed: () {
                         _removeFromWishlist(context, wishlistDocumentId);
                       },

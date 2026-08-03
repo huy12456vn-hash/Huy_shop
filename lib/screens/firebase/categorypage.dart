@@ -26,15 +26,15 @@ class _CategoryPageState extends State<CategoryPage> {
       context: context,
       builder: (context){
         return AlertDialog(
-          title: Text(documentSnapshot == null ? 'Thêm Danh Mục' : 'Sửa Danh Mục'),
+          title: Text(documentSnapshot == null ? 'Add Category' : 'Edit Category'),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(labelText: 'Tên danh mục', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Category Name', border: OutlineInputBorder()),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -50,7 +50,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   if (context.mounted) Navigator.pop(context);
                 }
               },
-              child: const Text('Lưu'),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -59,7 +59,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
   Future<void> _deleteCategory(String categoryId) async {
     await _categories.doc(categoryId).delete();
-    if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Xóa danh mục thành công')));
+    if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Category deleted successfully')));
   }
 
   @override
@@ -78,7 +78,7 @@ class _CategoryPageState extends State<CategoryPage> {
               controller: _searchController,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm danh mục...',
+                hintText: 'Search categories...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 suffixIcon: _searchController.text.isEmpty
@@ -101,10 +101,10 @@ class _CategoryPageState extends State<CategoryPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (streamSnapshot.hasError) {
-                  return const Center(child: Text('Đã xảy ra lỗi khi tải dữ liệu.'));
+                  return const Center(child: Text('An error occurred while loading data.'));
                 }
                 if (!streamSnapshot.hasData || streamSnapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('Chưa có danh mục nào.'));
+                  return const Center(child: Text('No categories yet.'));
                 }
 
                 final query = _searchController.text.trim().toLowerCase();
@@ -114,7 +114,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
-                  return const Center(child: Text('Không tìm thấy danh mục phù hợp.'));
+                  return const Center(child: Text('No matching categories found.'));
                 }
 
                 return ListView.builder(
@@ -129,7 +129,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           backgroundColor: Colors.blue,
                           child: Icon(Icons.category, color: Colors.white),
                         ),
-                        title: Text(documentSnapshot.data()['name']?.toString() ?? 'Không tên'),
+                        title: Text(documentSnapshot.data()['name']?.toString() ?? 'Untitled'),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -142,19 +142,19 @@ class _CategoryPageState extends State<CategoryPage> {
                               onPressed: () => showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  title: const Text('Xác nhận xóa'),
-                                  content: const Text('Bạn có chắc muốn xóa danh mục này?'),
+                                  title: const Text('Confirm Delete'),
+                                  content: const Text('Are you sure you want to delete this category?'),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context),
-                                      child: const Text('Hủy'),
+                                      child: const Text('Cancel'),
                                     ),
                                     TextButton(
                                       onPressed: () {
                                         Navigator.pop(context);
                                         _deleteCategory(documentSnapshot.id);
                                       },
-                                      child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+                                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
                                     ),
                                   ],
                                 ),

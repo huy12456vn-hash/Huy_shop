@@ -32,7 +32,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   try {
-    // Lấy toàn bộ sản phẩm rồi lọc ở client (đơn giản, không cần index/field phụ)
+    // Fetch all products and filter on the client side for simplicity.
     final QuerySnapshot snapshot =
         await FirebaseFirestore.instance.collection('products').get();
 
@@ -52,7 +52,7 @@ class _SearchPageState extends State<SearchPage> {
     setState(() {
       _isLoading = false;
     });
-    debugPrint('Lỗi tìm kiếm: $e');
+    debugPrint('Search error: $e');
   }
 }
 
@@ -97,7 +97,7 @@ class _SearchPageState extends State<SearchPage> {
           controller: _searchController,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: 'Tìm kiếm sản phẩm...',
+            hintText: 'Search products...',
             border: InputBorder.none,
           ),
           onChanged: (value) {
@@ -127,7 +127,7 @@ class _SearchPageState extends State<SearchPage> {
     if (_keyword.isEmpty) {
       return const Center(
         child: Text(
-          'Nhập từ khóa để tìm sản phẩm',
+          'Enter a keyword to search products',
           style: TextStyle(color: Colors.grey),
         ),
       );
@@ -136,7 +136,7 @@ class _SearchPageState extends State<SearchPage> {
     if (_results.isEmpty) {
       return const Center(
         child: Text(
-          'Không tìm thấy sản phẩm nào',
+          'No products found',
           style: TextStyle(color: Colors.grey),
         ),
       );
@@ -206,7 +206,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _formatPrice(product.price), // bỏ luôn dấu $ thừa, xem lưu ý bên dưới
+                  _formatPrice(product.price),
                   style: const TextStyle(color: Colors.grey),
                 ),
               ],
