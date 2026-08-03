@@ -21,15 +21,23 @@ class ProductCard extends StatelessWidget {
   }
 
   String _formatPrice(dynamic value) {
-    final number = value is num ? value : num.tryParse(value.toString()) ?? 0;
-    final digits = number.truncate().toString();
+    final input = value?.toString() ?? '0';
+    final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
+    final parsed = normalized.isEmpty
+        ? 0
+        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+    final usdAmount = parsed / 26300;
+    final cents = (usdAmount * 100).round();
+    final whole = cents ~/ 100;
+    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
+    final digits = whole.toString();
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
       final posFromRight = digits.length - i;
       buffer.write(digits[i]);
-      if (posFromRight > 1 && posFromRight % 3 == 1) buffer.write('.');
+      if (posFromRight > 1 && posFromRight % 3 == 1) buffer.write(',');
     }
-    return '\$${buffer.toString()}';
+    return '\$${buffer.toString()}.$fraction';
   }
 
   // Chip nhỏ hiển thị 1 size (ví dụ: S, M, L, XL...)

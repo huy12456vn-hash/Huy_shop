@@ -25,7 +25,11 @@ class CartPage extends StatelessWidget {
   }
 
   String _formatPrice(double value) {
-    final digits = value.round().toString();
+    final usdAmount = value / 26300;
+    final cents = (usdAmount * 100).round();
+    final whole = cents ~/ 100;
+    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
+    final digits = whole.toString();
     final buffer = StringBuffer();
 
     for (int index = 0; index < digits.length; index++) {
@@ -33,11 +37,11 @@ class CartPage extends StatelessWidget {
       buffer.write(digits[index]);
 
       if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write('.');
+        buffer.write(',');
       }
     }
 
-    return '\$${buffer.toString()}';
+    return '\$${buffer.toString()}.$fraction';
   }
 
   Future<void> _confirmClearCart(

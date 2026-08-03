@@ -85,24 +85,27 @@ class _ProductDetailPageState extends State<ProductDetailPage>
   }
 
   String _formatPrice(String price) {
-    final digitsOnly = price.replaceAll(RegExp(r'[^0-9]'), '');
-
-    if (digitsOnly.isEmpty) {
-      return price;
-    }
-
+    final normalized = price.replaceAll(RegExp(r'[^0-9,.-]'), '');
+    final parsed = normalized.isEmpty
+        ? 0
+        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+    final usdAmount = parsed / 26300;
+    final cents = (usdAmount * 100).round();
+    final whole = cents ~/ 100;
+    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
+    final digits = whole.toString();
     final buffer = StringBuffer();
 
-    for (int index = 0; index < digitsOnly.length; index++) {
-      final positionFromRight = digitsOnly.length - index;
-      buffer.write(digitsOnly[index]);
+    for (int index = 0; index < digits.length; index++) {
+      final positionFromRight = digits.length - index;
+      buffer.write(digits[index]);
 
       if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write('.');
+        buffer.write(',');
       }
     }
 
-    return '\$${buffer.toString()}';
+    return '\$${buffer.toString()}.$fraction';
   }
 
   String _wishlistDocumentId({

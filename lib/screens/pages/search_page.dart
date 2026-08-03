@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import 'dart:convert';
 import 'product_detail_page.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -54,6 +55,30 @@ class _SearchPageState extends State<SearchPage> {
     debugPrint('Lỗi tìm kiếm: $e');
   }
 }
+
+  String _formatPrice(dynamic value) {
+    final input = value?.toString() ?? '0';
+    final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
+    final parsed = normalized.isEmpty
+        ? 0
+        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+    final usdAmount = parsed / 26300;
+    final cents = (usdAmount * 100).round();
+    final whole = cents ~/ 100;
+    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
+    final digits = whole.toString();
+    final buffer = StringBuffer();
+
+    for (int index = 0; index < digits.length; index++) {
+      final positionFromRight = digits.length - index;
+      buffer.write(digits[index]);
+      if (positionFromRight > 1 && positionFromRight % 3 == 1) {
+        buffer.write(',');
+      }
+    }
+
+    return '\$${buffer.toString()}.$fraction';
+  }
 
   @override
   void dispose() {
@@ -117,20 +142,17 @@ class _SearchPageState extends State<SearchPage> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _results.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
-      ),
-      itemBuilder: (context, index) {
-        final product = _results[index];
-        return _buildProductCard(product);
-      },
-    );
+    return MasonryGridView.count(
+  padding: const EdgeInsets.all(12),
+  crossAxisCount: 2,
+  mainAxisSpacing: 12,
+  crossAxisSpacing: 12,
+  itemCount: _results.length,
+  itemBuilder: (context, index) {
+    final product = _results[index];
+    return _buildProductCard(product);
+  },
+);
   }
 
   Widget _buildProductCard(ProductModel product) {
@@ -150,13 +172,15 @@ class _SearchPageState extends State<SearchPage> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8),
-              ),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(8),
+            ),
+            child: AspectRatio(
+              aspectRatio: 1.1,
               child: product.image.isNotEmpty
                   ? Image.memory(
                       base64Decode(product.image),
@@ -171,18 +195,19 @@ class _SearchPageState extends State<SearchPage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   product.name,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${product.price} đ',
-                  style: const TextStyle(color: Colors.red),
+                  _formatPrice(product.price), // bỏ luôn dấu $ thừa, xem lưu ý bên dưới
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),

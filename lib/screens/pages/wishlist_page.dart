@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import 'product_detail_page.dart';
-
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 class WishlistPage extends StatelessWidget {
   const WishlistPage({super.key});
 
@@ -54,25 +54,30 @@ class WishlistPage extends StatelessWidget {
 
   String _formatPrice(dynamic value) {
     if (value == null) {
-      return '\$0';
+      return '\$0.00';
     }
 
-    final number = value is num ? value : num.tryParse(value.toString()) ?? 0;
-
-    final digits = number.truncate().toString();
+    final input = value.toString();
+    final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
+    final parsed = normalized.isEmpty
+        ? 0
+        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+    final usdAmount = parsed / 26300;
+    final cents = (usdAmount * 100).round();
+    final whole = cents ~/ 100;
+    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
+    final digits = whole.toString();
     final buffer = StringBuffer();
 
     for (int index = 0; index < digits.length; index++) {
       final positionFromRight = digits.length - index;
-
       buffer.write(digits[index]);
-
       if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write('.');
+        buffer.write(',');
       }
     }
 
-    return '\$${buffer.toString()}';
+    return '\$${buffer.toString()}.$fraction';
   }
 
   @override
@@ -163,26 +168,23 @@ class WishlistPage extends StatelessWidget {
             return secondTime.compareTo(firstTime);
           });
 
-          return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            itemCount: wishlistDocuments.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 14,
-              crossAxisSpacing: 14,
-              childAspectRatio: 0.62,
-            ),
-            itemBuilder: (context, index) {
-              final document = wishlistDocuments[index];
-              final product = document.data();
+          return MasonryGridView.count(
+  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+  crossAxisCount: 2,
+  mainAxisSpacing: 14,
+  crossAxisSpacing: 14,
+  itemCount: wishlistDocuments.length,
+  itemBuilder: (context, index) {
+    final document = wishlistDocuments[index];
+    final product = document.data();
 
-              return _buildWishlistCard(
-                context: context,
-                wishlistDocumentId: document.id,
-                product: product,
-              );
-            },
-          );
+    return _buildWishlistCard(
+      context: context,
+      wishlistDocumentId: document.id,
+      product: product,
+    );
+  },
+);
         },
       ),
     );

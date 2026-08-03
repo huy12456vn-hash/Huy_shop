@@ -453,7 +453,7 @@ class _ProductFbPageState extends State<ProductPage> {
                                         borderRadius: BorderRadius.circular(30),
                                       ),
                                       child: Text(
-                                        '\$${price.toString()}',
+                                        '\$${_formatPriceForDisplay(price)}',
                                         style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                                       ),
                                     ),
@@ -549,7 +549,7 @@ class _ThousandsSeparatorInputFormatter extends TextInputFormatter {
       return const TextEditingValue(text: '');
     }
 
-    final formatted = _formatDigitsWithDots(digitsOnly);
+    final formatted = _formatDigitsWithCommas(digitsOnly);
 
     return TextEditingValue(
       text: formatted,
@@ -559,26 +559,30 @@ class _ThousandsSeparatorInputFormatter extends TextInputFormatter {
 }
 
 /// Chèn dấu chấm mỗi 3 chữ số tính từ bên phải, ví dụ "11000000" -> "11.000.000".
-String _formatDigitsWithDots(String digitsOnly) {
+String _formatDigitsWithCommas(String digitsOnly) {
   final buffer = StringBuffer();
   for (int i = 0; i < digitsOnly.length; i++) {
     final posFromRight = digitsOnly.length - i;
     buffer.write(digitsOnly[i]);
     if (posFromRight > 1 && posFromRight % 3 == 1) {
-      buffer.write('.');
+      buffer.write(',');
     }
   }
   return buffer.toString();
 }
 
-/// Format giá trị 'price' lấy từ Firestore (num) thành chuỗi có dấu chấm
+/// Format giá trị 'price' lấy từ Firestore (num) thành chuỗi theo kiểu USD
 /// để hiển thị sẵn trong ô nhập khi sửa sản phẩm.
 String _formatPriceForDisplay(dynamic priceValue) {
   if (priceValue == null) return '';
   final priceNum = priceValue is num ? priceValue : num.tryParse(priceValue.toString());
   if (priceNum == null) return '';
-  final intPart = priceNum.truncate().toString();
-  return _formatDigitsWithDots(intPart);
+  final usdAmount = priceNum / 26300;
+  final cents = (usdAmount * 100).round();
+  final whole = cents ~/ 100;
+  final fraction = (cents % 100).abs().toString().padLeft(2, '0');
+  final digits = whole.toString();
+  return _formatDigitsWithCommas(digits) + '.$fraction';
 }
 
 /// Resize ảnh về cạnh dài nhất 600px và encode lại thành JPEG chất lượng vừa
