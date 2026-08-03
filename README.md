@@ -1,6 +1,11 @@
 ﻿# shop_gucci
 
-A new Flutter project.
+A new Flutter project — Gucci shopping app with AI chatbot support.
+
+## Tính năng
+
+- Xem sản phẩm theo danh mục, thêm vào giỏ hàng, wishlist.
+- Chatbot tư vấn sản phẩm bằng AI (Groq), tự động hiển thị card sản phẩm kèm ảnh/giá khi được nhắc đến, bấm vào để xem chi tiết.
 
 ## API Key
 
@@ -14,7 +19,7 @@ Repo này **không** chứa API key trên GitHub — key không bao giờ đư�
    cd Huy_shop
 ```
 
-2. Nhận API key từ bạn qua kênh riêng tư (Zalo, Messenger, v.v.) — **không** gửi qua email công khai hoặc để trong repo.
+2. Nhận API key (Groq) từ bạn qua kênh riêng tư (Zalo, Messenger, v.v.) — **không** gửi qua email công khai hoặc để trong repo. Nếu chưa có key, tạo miễn phí tại: https://console.groq.com/keys
 
 3. Chạy app với key:
 ```bash
@@ -35,7 +40,7 @@ Repo này **không** chứa API key trên GitHub — key không bao giờ đư�
          "request": "launch",
          "type": "dart",
          "args": [
-           "--dart-define=GEMINI_API_KEY=YOUR_KEY_HERE"
+           "--dart-define=GROQ_API_KEY=YOUR_KEY_HERE"
          ]
        }
      ]
@@ -45,6 +50,6 @@ Repo này **không** chứa API key trên GitHub — key không bao giờ đư�
 ### Lưu ý bảo mật
 
 - **Tuyệt đối không** commit key thật vào bất kỳ file nào (code, README, launch.json, .env...).
-- Thêm `.env`, `launch.json`, hoặc file chứa key thật vào `.gitignore`.
+- Thêm `.env`, `.vscode/launch.json`, hoặc file chứa key thật vào `.gitignore`.
 - Nếu lỡ commit key thật lên GitHub dù chỉ 1 lần, phải **thu hồi key đó ngay** — xoá commit không đủ vì key vẫn còn trong lịch sử Git.
 - Gửi key cho bạn bè qua kênh nhắn tin riêng tư, không qua Issue/PR/commit message công khai.
