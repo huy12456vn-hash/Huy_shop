@@ -70,7 +70,7 @@ class ChatService {
     final catalog = await _fetchProductCatalog();
     final catalogText = catalog
         .map((p) =>
-            '- id: ${p['id']}, tên: ${p['name']}, giá: ${p['price']} VND, danh mục: ${p['category']}')
+            '- id: ${p['id']}, tên: ${p['name']}, giá: \$${p['price']}, danh mục: ${p['category']}')
         .join('\n');
 
     final systemPrompt = '''

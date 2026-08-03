@@ -54,7 +54,7 @@ class WishlistPage extends StatelessWidget {
 
   String _formatPrice(dynamic value) {
     if (value == null) {
-      return '0 VND';
+      return '\$0';
     }
 
     final number = value is num ? value : num.tryParse(value.toString()) ?? 0;
@@ -72,7 +72,7 @@ class WishlistPage extends StatelessWidget {
       }
     }
 
-    return '${buffer.toString()} VND';
+    return '\$${buffer.toString()}';
   }
 
   @override

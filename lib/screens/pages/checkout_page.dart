@@ -112,7 +112,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
     }
 
-    return '${buffer.toString()} ₫';
+    return '\$${buffer.toString()}';
   }
 
   void _applyVoucher() {

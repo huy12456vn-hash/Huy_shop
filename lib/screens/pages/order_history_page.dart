@@ -21,7 +21,7 @@ class OrderHistoryPage extends StatelessWidget {
       }
     }
 
-    return '${buffer.toString()} ₫';
+    return '\$${buffer.toString()}';
   }
 
   String _formatDate(dynamic value) {

@@ -115,6 +115,7 @@ class CartItemModel {
         .toString()
         .replaceAll('VND', '')
         .replaceAll('₫', '')
+        .replaceAll('\$', '')
         .replaceAll('.', '')
         .replaceAll(',', '')
         .replaceAll(' ', '')

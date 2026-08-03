@@ -87,7 +87,7 @@ class _ProductFbPageState extends State<ProductPage> {
                       decoration: const InputDecoration(
                         labelText: 'Giá sản phẩm',
                         border: OutlineInputBorder(),
-                        suffixText: '₫',
+                        suffixText: '\$',
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -453,7 +453,7 @@ class _ProductFbPageState extends State<ProductPage> {
                                         borderRadius: BorderRadius.circular(30),
                                       ),
                                       child: Text(
-                                        '${price.toString()} ₫',
+                                        '\$${price.toString()}',
                                         style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                                       ),
                                     ),

@@ -102,7 +102,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
       }
     }
 
-    return '${buffer.toString()} ₫';
+    return '\$${buffer.toString()}';
   }
 
   String _wishlistDocumentId({

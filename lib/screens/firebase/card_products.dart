@@ -29,7 +29,7 @@ class ProductCard extends StatelessWidget {
       buffer.write(digits[i]);
       if (posFromRight > 1 && posFromRight % 3 == 1) buffer.write('.');
     }
-    return '${buffer.toString()} VND';
+    return '\$${buffer.toString()}';
   }
 
   // Chip nhỏ hiển thị 1 size (ví dụ: S, M, L, XL...)

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +37,7 @@ class CartPage extends StatelessWidget {
       }
     }
 
-    return '${buffer.toString()} ₫';
+    return '\$${buffer.toString()}';
   }
 
   Future<void> _confirmClearCart(
@@ -359,7 +358,7 @@ class CartPage extends StatelessWidget {
 
   Widget _buildCartList(BuildContext context, CartProvider cartProvider) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: cartProvider.items.length,
       separatorBuilder: (context, index) {
         return const SizedBox(height: 12);
@@ -385,53 +384,53 @@ class CartPage extends StatelessWidget {
         _openSizePicker(context, cartProvider, item);
       },
       child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.04),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: imageBytes == null
-                ? Container(
-                    width: 96,
-                    height: 96,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.image_outlined, color: Colors.grey),
-                  )
-                : Image.memory(
-                    imageBytes,
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 96,
-                        height: 96,
-                        color: Colors.grey.shade200,
-                        child: const Icon(
-                          Icons.broken_image_outlined,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.04),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: imageBytes == null
+                  ? Container(
+                      width: 96,
+                      height: 96,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.image_outlined, color: Colors.grey),
+                    )
+                  : Image.memory(
+                      imageBytes,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 96,
+                          height: 96,
+                          color: Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

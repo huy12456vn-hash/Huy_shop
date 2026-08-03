@@ -202,7 +202,7 @@ class _ChatPageState extends State<ChatPage> {
       buffer.write(digitsOnly[i]);
       if (posFromRight > 1 && posFromRight % 3 == 1) buffer.write('.');
     }
-    return '${buffer.toString()} ₫';
+    return '\$${buffer.toString()}';
   }
 
   @override

@@ -65,7 +65,7 @@ class _CategoryPageState extends State<CategoryPage> {
       }
     }
 
-    return '${buffer.toString()} ₫';
+    return '\$${buffer.toString()}';
   }
 
   String _wishlistDocumentId({

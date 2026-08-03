@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../models/product_model.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/banner_widget.dart';
@@ -347,7 +347,7 @@ class HomePage extends StatelessWidget {
       }
     }
 
-    return '${buffer.toString()} VND';
+    return '\$${buffer.toString()}';
   }
 
   String _wishlistDocumentId({
@@ -626,6 +626,7 @@ class HomePage extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
+                      height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -723,64 +724,57 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildAllProductsGrid() {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _productsRef
-          .orderBy('createdAt', descending: true)
-          .limit(20)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: CircularProgressIndicator(color: Colors.black),
-            ),
-          );
-        }
+  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    stream: _productsRef
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator(color: Colors.black)),
+        );
+      }
 
-        if (snapshot.hasError) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                'Không tải được sản phẩm',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          );
-        }
+      if (snapshot.hasError) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(
+            child: Text('Không tải được sản phẩm', style: TextStyle(color: Colors.grey)),
+          ),
+        );
+      }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: Text('Chưa có sản phẩm nào.')),
-          );
-        }
+      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: Text('Chưa có sản phẩm nào.')),
+        );
+      }
 
-        final products = snapshot.data!.docs;
+      final products = snapshot.data!.docs;
 
-        return GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: MasonryGridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
           itemCount: products.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 14,
-            crossAxisSpacing: 14,
-            childAspectRatio: 0.65,
-          ),
           itemBuilder: (context, index) {
             final productDocument = products[index];
-
             return _buildProductCard(
               context: context,
               productId: productDocument.id,
               product: productDocument.data(),
             );
           },
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }
