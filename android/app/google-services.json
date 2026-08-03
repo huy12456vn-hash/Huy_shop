@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "179488083210",
+    "firebase_url": "https://guxi-shop-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "guxi-shop",
+    "storage_bucket": "guxi-shop.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179488083210:android:ff8e9577b317f215b87ef3",
+        "android_client_info": {
+          "package_name": "com.example.shop_gucci"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3NVb2Wc_4lKKV86Aoju7sAuVV1-MT2ys"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
