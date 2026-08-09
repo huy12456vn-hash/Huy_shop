@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/product_model.dart';
 import '../../providers/cart_provider.dart';
+import '../../l10n/app_strings.dart';
 import 'product_detail_page.dart';
 
 class CategoryPage extends StatefulWidget {
@@ -49,30 +50,6 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
-  String _formatPrice(dynamic value) {
-    final input = value?.toString() ?? '0';
-    final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
-    final parsed = normalized.isEmpty
-        ? 0
-        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-    final usdAmount = parsed / 26300;
-    final cents = (usdAmount * 100).round();
-    final whole = cents ~/ 100;
-    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
-    final digits = whole.toString();
-    final buffer = StringBuffer();
-
-    for (int index = 0; index < digits.length; index++) {
-      final positionFromRight = digits.length - index;
-      buffer.write(digits[index]);
-      if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-
-    return '\$${buffer.toString()}.$fraction';
-  }
-
   String _wishlistDocumentId({
     required String userId,
     required String productId,
@@ -86,10 +63,11 @@ class _CategoryPageState extends State<CategoryPage> {
     required Map<String, dynamic> product,
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
+    final t = AppStrings.of(context);
 
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to use the wishlist.')),
+        SnackBar(content: Text(t.signInToWishlist)),
       );
       return;
     }
@@ -112,9 +90,9 @@ class _CategoryPageState extends State<CategoryPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Removed from wishlist.'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(t.removedFromWishlist),
+            duration: const Duration(seconds: 1),
           ),
         );
       } else {
@@ -135,9 +113,9 @@ class _CategoryPageState extends State<CategoryPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added to wishlist.'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(t.addedToWishlist),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -147,7 +125,7 @@ class _CategoryPageState extends State<CategoryPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to update wishlist: $error')),
+        SnackBar(content: Text(t.unableToUpdateWishlist(error.toString()))),
       );
     }
   }
@@ -227,6 +205,7 @@ class _CategoryPageState extends State<CategoryPage> {
     required Map<String, dynamic> product,
   }) async {
     final productModel = ProductModel.fromMap(productId, product);
+    final t = AppStrings.of(context);
 
     await context.read<CartProvider>().addProduct(productModel);
 
@@ -237,7 +216,7 @@ class _CategoryPageState extends State<CategoryPage> {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${productModel.name} was added to your cart.'),
+        content: Text(t.addedToCartMessage(productModel.name)),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -245,20 +224,27 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
-        children: [
-          const SizedBox(height: 8),
-          _buildCategoryChips(),
-          const SizedBox(height: 14),
-          Expanded(child: _buildProductGrid()),
-        ],
-      ),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) {
+        final t = AppStrings(locale);
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          body: Column(
+            children: [
+              const SizedBox(height: 8),
+              _buildCategoryChips(t),
+              const SizedBox(height: 14),
+              Expanded(child: _buildProductGrid(t)),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildCategoryChips() {
+  Widget _buildCategoryChips(AppStrings t) {
     return SizedBox(
       height: 44,
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -267,10 +253,10 @@ class _CategoryPageState extends State<CategoryPage> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(
+            return Center(
               child: Text(
-                'Unable to load categories',
-                style: TextStyle(color: Colors.grey),
+                t.unableToLoadCategories,
+                style: const TextStyle(color: Colors.grey),
               ),
             );
           }
@@ -282,7 +268,7 @@ class _CategoryPageState extends State<CategoryPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
               _buildChip(
-                label: 'All',
+                label: t.allCategoriesLabel,
                 selected: _selectedCategoryId == null,
                 onTap: () {
                   setState(() {
@@ -345,7 +331,7 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
-  Widget _buildProductGrid() {
+  Widget _buildProductGrid(AppStrings t) {
     final bool isFilteringByCategory = _selectedCategoryId != null;
 
     final Query<Map<String, dynamic>> query = isFilteringByCategory
@@ -366,7 +352,7 @@ class _CategoryPageState extends State<CategoryPage> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Unable to load products.\n${snapshot.error}',
+                t.unableToLoadProducts(snapshot.error.toString()),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey),
               ),
@@ -375,11 +361,11 @@ class _CategoryPageState extends State<CategoryPage> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
-              'No products were found in this category.',
+              t.noProductsInCategory,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey),
             ),
           );
         }
@@ -408,22 +394,23 @@ class _CategoryPageState extends State<CategoryPage> {
             });
         }
 
-       return MasonryGridView.count(
-  padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
-  crossAxisCount: 2,
-  mainAxisSpacing: 12,
-  crossAxisSpacing: 12,
-  itemCount: products.length,
-  itemBuilder: (context, index) {
-    final productDocument = products[index];
+        return MasonryGridView.count(
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 20),
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final productDocument = products[index];
 
-    return _buildProductCard(
-      context: context,
-      productId: productDocument.id,
-      product: productDocument.data(),
-    );
-  },
-);
+            return _buildProductCard(
+              context: context,
+              productId: productDocument.id,
+              product: productDocument.data(),
+              t: t,
+            );
+          },
+        );
       },
     );
   }
@@ -432,6 +419,7 @@ class _CategoryPageState extends State<CategoryPage> {
     required BuildContext context,
     required String productId,
     required Map<String, dynamic> product,
+    required AppStrings t,
   }) {
     final imageBase64 = (product['image'] ?? '').toString();
     final imageBytes = _decodeProductImage(imageBase64);
@@ -535,7 +523,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          _formatPrice(price),
+                          t.formatPrice(price),
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.grey),
                         ),

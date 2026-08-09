@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'l10n/app_strings.dart';
 import 'providers/cart_provider.dart';
 import 'screens/admin/admin_panel_screen.dart';
 import 'screens/auth/welcome_screen.dart';
@@ -18,6 +19,10 @@ Future<void> main() async {
 
   await Hive.initFlutter();
   await Hive.openBox<dynamic>('cartBox');
+
+  // Nạp ngôn ngữ đã lưu từ lần dùng trước, trước khi build bất kỳ UI nào,
+  // để app mở lên đúng ngôn ngữ ngay từ màn hình đầu tiên.
+  await LocaleController.loadSavedLanguage();
 
   final CartProvider cartProvider = CartProvider();
   await cartProvider.loadCart();

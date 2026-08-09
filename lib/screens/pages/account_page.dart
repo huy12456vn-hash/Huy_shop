@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/auth_services.dart';
+import '../../l10n/app_strings.dart';
 import '../auth/welcome_screen.dart';
 import 'order_history_page.dart';
 
@@ -16,9 +17,12 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
+  static const String _languageKey = 'account_language';
+
   String _fullName = '';
   String _phoneNumber = '';
   String _deliveryAddress = '';
+  String _currentLanguage = 'English';
   bool _isLoadingProfile = true;
 
   User? get _user => _firebaseAuth.currentUser;
@@ -47,8 +51,11 @@ class _AccountPageState extends State<AccountPage> {
       _deliveryAddress =
           preferences.getString('account_delivery_address') ?? '';
 
+      _currentLanguage = preferences.getString(_languageKey) ?? 'English';
       _isLoadingProfile = false;
     });
+
+    LocaleController.setLanguage(_currentLanguage);
   }
 
   Future<void> _saveProfile({
@@ -73,7 +80,7 @@ class _AccountPageState extends State<AccountPage> {
       _phoneNumber = phoneNumber.trim();
     });
 
-    _showMessage('Personal information updated successfully.');
+    _showMessage(AppStrings.of(context).personalInfoUpdated);
   }
 
   Future<void> _saveDeliveryAddress(String address) async {
@@ -89,24 +96,24 @@ class _AccountPageState extends State<AccountPage> {
       _deliveryAddress = address.trim();
     });
 
-    _showMessage('Delivery address saved successfully.');
+    _showMessage(AppStrings.of(context).deliveryAddressSaved);
   }
 
   Future<void> _logout() async {
+    final t = AppStrings.of(context);
+
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Log out'),
-          content: const Text(
-            'Are you sure you want to log out of your account?',
-          ),
+          title: Text(t.logoutTitle),
+          content: Text(t.logoutConfirm),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext, false);
               },
-              child: const Text('Cancel'),
+              child: Text(t.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -116,7 +123,7 @@ class _AccountPageState extends State<AccountPage> {
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Log out'),
+              child: Text(t.logout),
             ),
           ],
         );
@@ -455,6 +462,8 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _openAccountSettings() async {
+    final t = AppStrings.of(context);
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -477,11 +486,11 @@ class _AccountPageState extends State<AccountPage> {
                   ),
                 ),
                 const SizedBox(height: 22),
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Account Settings',
-                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                    t.accountSettings,
+                    style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -491,13 +500,11 @@ class _AccountPageState extends State<AccountPage> {
                     backgroundColor: Color(0xFFF2F2F2),
                     child: Icon(Icons.lock_reset, color: Colors.black87),
                   ),
-                  title: const Text(
-                    'Change password',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  title: Text(
+                    t.changePassword,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: const Text(
-                    'Receive a password reset link by email',
-                  ),
+                  subtitle: Text(t.changePasswordSubtitle),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.pop(sheetContext);
@@ -511,11 +518,11 @@ class _AccountPageState extends State<AccountPage> {
                     backgroundColor: Color(0xFFF2F2F2),
                     child: Icon(Icons.email_outlined, color: Colors.black87),
                   ),
-                  title: const Text(
-                    'Account email',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  title: Text(
+                    t.accountEmail,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(_user?.email ?? 'No email'),
+                  subtitle: Text(_user?.email ?? t.noEmail),
                 ),
               ],
             ),
@@ -525,17 +532,40 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
-  void _openLanguage() {
-    showDialog<void>(
+  Future<void> _saveLanguage(String language) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_languageKey, language);
+    LocaleController.setLanguage(language);
+  }
+
+  Future<void> _openLanguage() async {
+    final selectedLanguage = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Language'),
-          content: const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.check_circle, color: Colors.black),
-            title: Text('English'),
-            subtitle: Text('Current language'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String>(
+                value: 'English',
+                groupValue: _currentLanguage,
+                title: const Text('English'),
+                subtitle: const Text('Current language'),
+                onChanged: (value) {
+                  Navigator.pop(dialogContext, value);
+                },
+              ),
+              RadioListTile<String>(
+                value: 'Tiếng Việt',
+                groupValue: _currentLanguage,
+                title: const Text('Tiếng Việt'),
+                subtitle: const Text('Chuyển sang giao diện tiếng Việt'),
+                onChanged: (value) {
+                  Navigator.pop(dialogContext, value);
+                },
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -548,6 +578,22 @@ class _AccountPageState extends State<AccountPage> {
         );
       },
     );
+
+    if (selectedLanguage == null || selectedLanguage == _currentLanguage) {
+      return;
+    }
+
+    await _saveLanguage(selectedLanguage);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentLanguage = selectedLanguage;
+    });
+
+    _showMessage('${AppStrings.of(context).languageChangedTo} $selectedLanguage.');
   }
 
   void _openHelp() {
@@ -609,116 +655,123 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    final email = _user?.email ?? 'No email';
-    final accountName = _fullName.trim().isEmpty ? 'Gucci Account' : _fullName;
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) {
+        final t = AppStrings(locale);
+        final email = _user?.email ?? t.noEmail;
+        final accountName = _fullName.trim().isEmpty ? 'Gucci Account' : _fullName;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: _isLoadingProfile
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.black),
-              )
-            : SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 24, 18, 30),
-                child: Column(
-                  children: [
-                    _buildProfileHeader(
-                      initials: _getInitials(),
-                      accountName: accountName,
-                      email: email,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('MY ACCOUNT'),
-                    const SizedBox(height: 10),
-                    _buildMenuCard(
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          body: SafeArea(
+            child: _isLoadingProfile
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.black),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 24, 18, 30),
+                    child: Column(
                       children: [
-                        _buildMenuItem(
-                          icon: Icons.receipt_long_outlined,
-                          title: 'My Orders',
-                          subtitle: 'View order history and order status',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const OrderHistoryPage(),
+                        _buildProfileHeader(
+                          initials: _getInitials(),
+                          accountName: accountName,
+                          email: email,
+                          t: t,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSectionTitle(t.myAccount),
+                        const SizedBox(height: 10),
+                        _buildMenuCard(
+                          children: [
+                            _buildMenuItem(
+                              icon: Icons.receipt_long_outlined,
+                              title: t.myOrders,
+                              subtitle: t.myOrdersSubtitle,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const OrderHistoryPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildDivider(),
+                            _buildMenuItem(
+                              icon: Icons.location_on_outlined,
+                              title: t.deliveryAddress,
+                              subtitle: _deliveryAddress.isEmpty
+                                  ? t.addDeliveryAddress
+                                  : _deliveryAddress,
+                              onTap: _openDeliveryAddress,
+                            ),
+                            _buildDivider(),
+                            _buildMenuItem(
+                              icon: Icons.person_outline,
+                              title: t.personalInfo,
+                              subtitle: t.personalInfoSubtitle,
+                              onTap: _openPersonalInformation,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+                        _buildSectionTitle(t.settings),
+                        const SizedBox(height: 10),
+                        _buildMenuCard(
+                          children: [
+                            _buildMenuItem(
+                              icon: Icons.settings_outlined,
+                              title: t.accountSettings,
+                              subtitle: t.accountSettingsSubtitle,
+                              onTap: _openAccountSettings,
+                            ),
+                            _buildDivider(),
+                            _buildMenuItem(
+                              icon: Icons.language,
+                              title: t.language,
+                              subtitle: _currentLanguage,
+                              onTap: _openLanguage,
+                            ),
+                            _buildDivider(),
+                            _buildMenuItem(
+                              icon: Icons.help_outline,
+                              title: t.helpSupport,
+                              subtitle: t.helpSupportSubtitle,
+                              onTap: _openHelp,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton.icon(
+                            onPressed: _logout,
+                            icon: const Icon(Icons.logout, size: 20),
+                            label: Text(
+                              t.logout,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
                               ),
-                            );
-                          },
-                        ),
-                        _buildDivider(),
-                        _buildMenuItem(
-                          icon: Icons.location_on_outlined,
-                          title: 'Delivery Address',
-                          subtitle: _deliveryAddress.isEmpty
-                              ? 'Add your delivery address'
-                              : _deliveryAddress,
-                          onTap: _openDeliveryAddress,
-                        ),
-                        _buildDivider(),
-                        _buildMenuItem(
-                          icon: Icons.person_outline,
-                          title: 'Personal Information',
-                          subtitle: 'Update your name and phone number',
-                          onTap: _openPersonalInformation,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    _buildSectionTitle('SETTINGS'),
-                    const SizedBox(height: 10),
-                    _buildMenuCard(
-                      children: [
-                        _buildMenuItem(
-                          icon: Icons.settings_outlined,
-                          title: 'Account Settings',
-                          subtitle: 'Security and account preferences',
-                          onTap: _openAccountSettings,
-                        ),
-                        _buildDivider(),
-                        _buildMenuItem(
-                          icon: Icons.language,
-                          title: 'Language',
-                          subtitle: 'English',
-                          onTap: _openLanguage,
-                        ),
-                        _buildDivider(),
-                        _buildMenuItem(
-                          icon: Icons.help_outline,
-                          title: 'Help & Support',
-                          subtitle: 'Support and frequently asked questions',
-                          onTap: _openHelp,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: _logout,
-                        icon: const Icon(Icons.logout, size: 20),
-                        label: const Text(
-                          'Log out',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-      ),
+                  ),
+          ),
+        );
+      },
     );
   }
 
@@ -726,6 +779,7 @@ class _AccountPageState extends State<AccountPage> {
     required String initials,
     required String accountName,
     required String email,
+    required AppStrings t,
   }) {
     return Container(
       width: double.infinity,
@@ -789,18 +843,18 @@ class _AccountPageState extends State<AccountPage> {
               color: const Color(0xFFF2F2F2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.verified_user_outlined,
                   size: 17,
                   color: Colors.black87,
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  'Signed in',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  t.signedIn,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ],
             ),

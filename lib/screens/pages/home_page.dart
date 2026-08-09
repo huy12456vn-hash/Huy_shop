@@ -9,6 +9,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../models/product_model.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/banner_widget.dart';
+import '../../l10n/app_strings.dart';
 import 'category_page.dart';
 import 'product_detail_page.dart';
 
@@ -32,67 +33,74 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 5),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) {
+        final t = AppStrings(locale);
 
-                    _buildBanner(),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 5),
 
-                    const SizedBox(height: 20),
+                        _buildBanner(),
 
-                    _buildSectionHeader(
-                      title: 'FEATURED CATEGORIES',
-                      onViewAll: () {
-                        _openCategoryPage(context);
-                      },
+                        const SizedBox(height: 20),
+
+                        _buildSectionHeader(
+                          title: t.featuredCategories,
+                          onViewAll: () {
+                            _openCategoryPage(context, t);
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _buildCategoryList(context, t),
+
+                        const SizedBox(height: 20),
+
+                        _buildSectionHeader(
+                          title: t.newArrivals,
+                          onViewAll: () {
+                            _openCategoryPage(context, t);
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _buildProductList(t),
+
+                        const SizedBox(height: 20),
+
+                        _buildSectionHeader(
+                          title: t.allProducts,
+                          onViewAll: () {
+                            _openCategoryPage(context, t);
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        _buildAllProductsGrid(t),
+                      ],
                     ),
-
-                    const SizedBox(height: 14),
-
-                    _buildCategoryList(context),
-
-                    const SizedBox(height: 20),
-
-                    _buildSectionHeader(
-                      title: 'NEW ARRIVALS',
-                      onViewAll: () {
-                        _openCategoryPage(context);
-                      },
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    _buildProductList(),
-
-                    const SizedBox(height: 20),
-
-                    _buildSectionHeader(
-                      title: 'ALL PRODUCTS',
-                      onViewAll: () {
-                        _openCategoryPage(context);
-                      },
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    _buildAllProductsGrid(),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -100,7 +108,7 @@ class HomePage extends StatelessWidget {
     return BannerWidget(images: lstBanner, height: 250);
   }
 
-  void _openCategoryPage(BuildContext context, {String? categoryId}) {
+  void _openCategoryPage(BuildContext context, AppStrings t, {String? categoryId}) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -110,9 +118,9 @@ class HomePage extends StatelessWidget {
               backgroundColor: const Color(0xFFF5F5F5),
               elevation: 0,
               centerTitle: true,
-              title: const Text(
-                'CATEGORY',
-                style: TextStyle(
+              title: Text(
+                t.categoryPageTitle,
+                style: const TextStyle(
                   color: Colors.black,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -144,15 +152,17 @@ class HomePage extends StatelessWidget {
           InkWell(
             onTap: onViewAll,
             borderRadius: BorderRadius.circular(20),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 children: [
-                  Text(
-                    'View all',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  Builder(
+                    builder: (context) => Text(
+                      AppStrings.of(context).viewAll,
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
                   ),
-                  Icon(Icons.chevron_right, size: 16, color: Colors.black54),
+                  const Icon(Icons.chevron_right, size: 16, color: Colors.black54),
                 ],
               ),
             ),
@@ -162,7 +172,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryList(BuildContext context) {
+  Widget _buildCategoryList(BuildContext context, AppStrings t) {
     return SizedBox(
       height: 112,
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -178,19 +188,19 @@ class HomePage extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            return const Center(
+            return Center(
               child: Text(
-                'Unable to load categories',
-                style: TextStyle(color: Colors.grey),
+                t.unableToLoadCategories,
+                style: const TextStyle(color: Colors.grey),
               ),
             );
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'No categories yet',
-                style: TextStyle(color: Colors.grey),
+                t.noCategoriesYet,
+                style: const TextStyle(color: Colors.grey),
               ),
             );
           }
@@ -213,7 +223,7 @@ class HomePage extends StatelessWidget {
 
               return InkWell(
                 onTap: () {
-                  _openCategoryPage(context, categoryId: categoryDoc.id);
+                  _openCategoryPage(context, t, categoryId: categoryDoc.id);
                 },
                 borderRadius: BorderRadius.circular(40),
                 child: SizedBox(
@@ -331,30 +341,6 @@ class HomePage extends StatelessWidget {
     }
   }
 
-  String _formatPrice(dynamic value) {
-    final input = value?.toString() ?? '0';
-    final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
-    final parsed = normalized.isEmpty
-        ? 0
-        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-    final usdAmount = parsed / 26300;
-    final cents = (usdAmount * 100).round();
-    final whole = cents ~/ 100;
-    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
-    final digits = whole.toString();
-    final buffer = StringBuffer();
-
-    for (int index = 0; index < digits.length; index++) {
-      final positionFromRight = digits.length - index;
-      buffer.write(digits[index]);
-      if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-
-    return '\$${buffer.toString()}.$fraction';
-  }
-
   String _wishlistDocumentId({
     required String userId,
     required String productId,
@@ -368,11 +354,12 @@ class HomePage extends StatelessWidget {
     required Map<String, dynamic> product,
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
+    final t = AppStrings.of(context);
 
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in to use Wishlist.'),
+        SnackBar(
+          content: Text(t.signInToWishlistShort),
         ),
       );
 
@@ -397,9 +384,9 @@ class HomePage extends StatelessWidget {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Item removed from Wishlist.'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(t.itemRemovedFromWishlist),
+            duration: const Duration(seconds: 1),
           ),
         );
       } else {
@@ -420,9 +407,9 @@ class HomePage extends StatelessWidget {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Item added to Wishlist.'),
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: Text(t.itemAddedToWishlist),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -432,7 +419,7 @@ class HomePage extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to update Wishlist: $error')),
+        SnackBar(content: Text(t.unableToUpdateWishlistShort(error.toString()))),
       );
     }
   }
@@ -446,6 +433,7 @@ class HomePage extends StatelessWidget {
 
     if (currentUser == null) {
       return _heartButton(
+        context: context,
         isFavorite: false,
         onPressed: () {
           _toggleWishlist(
@@ -468,6 +456,7 @@ class HomePage extends StatelessWidget {
         final isFavorite = snapshot.hasData && snapshot.data!.exists;
 
         return _heartButton(
+          context: context,
           isFavorite: isFavorite,
           onPressed: () {
             _toggleWishlist(
@@ -482,9 +471,12 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _heartButton({
+    required BuildContext context,
     required bool isFavorite,
     required VoidCallback onPressed,
   }) {
+    final t = AppStrings.of(context);
+
     return Container(
       width: 34,
       height: 34,
@@ -494,7 +486,7 @@ class HomePage extends StatelessWidget {
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        tooltip: isFavorite ? 'Remove from Wishlist' : 'Add to Wishlist',
+        tooltip: isFavorite ? t.removeFromWishlistTooltip : t.addToWishlistTooltip,
         onPressed: onPressed,
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
@@ -511,6 +503,7 @@ class HomePage extends StatelessWidget {
     required Map<String, dynamic> product,
   }) async {
     final productModel = ProductModel.fromMap(productId, product);
+    final t = AppStrings.of(context);
 
     await context.read<CartProvider>().addProduct(productModel);
 
@@ -522,7 +515,7 @@ class HomePage extends StatelessWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${productModel.name} has been added to the cart.'),
+        content: Text(t.addedToCartHome(productModel.name)),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -532,6 +525,7 @@ class HomePage extends StatelessWidget {
     required BuildContext context,
     required String productId,
     required Map<String, dynamic> product,
+    required AppStrings t,
     double? width,
   }) {
     final imageBase64 = (product['image'] ?? '').toString();
@@ -639,7 +633,7 @@ class HomePage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          _formatPrice(price),
+                          t.formatPrice(price),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.grey),
@@ -675,7 +669,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProductList() {
+  Widget _buildProductList(AppStrings t) {
     return SizedBox(
       height: 290,
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -691,16 +685,16 @@ class HomePage extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            return const Center(
+            return Center(
               child: Text(
-                'Unable to load products',
-                style: TextStyle(color: Colors.grey),
+                t.unableToLoadProductsShort,
+                style: const TextStyle(color: Colors.grey),
               ),
             );
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No products'));
+            return Center(child: Text(t.noProducts));
           }
 
           final products = snapshot.data!.docs;
@@ -719,6 +713,7 @@ class HomePage extends StatelessWidget {
                 context: context,
                 productId: productDocument.id,
                 product: productDocument.data(),
+                t: t,
                 width: 170,
               );
             },
@@ -728,58 +723,59 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildAllProductsGrid() {
-  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-    stream: _productsRef
-        .orderBy('createdAt', descending: true)
-        .limit(20)
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator(color: Colors.black)),
-        );
-      }
+  Widget _buildAllProductsGrid(AppStrings t) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _productsRef
+          .orderBy('createdAt', descending: true)
+          .limit(20)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator(color: Colors.black)),
+          );
+        }
 
-      if (snapshot.hasError) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(
-              child: Text('Unable to load products', style: TextStyle(color: Colors.grey)),
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+                child: Text(t.unableToLoadProductsShort, style: const TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text(t.noProductsYet)),
+          );
+        }
+
+        final products = snapshot.data!.docs;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: MasonryGridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final productDocument = products[index];
+              return _buildProductCard(
+                context: context,
+                productId: productDocument.id,
+                product: productDocument.data(),
+                t: t,
+              );
+            },
           ),
         );
-      }
-
-      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: Text('No products yet.')),
-        );
-      }
-
-      final products = snapshot.data!.docs;
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: MasonryGridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final productDocument = products[index];
-            return _buildProductCard(
-              context: context,
-              productId: productDocument.id,
-              product: productDocument.data(),
-            );
-          },
-        ),
-      );
-    },
-  );
-}
+      },
+    );
+  }
 }

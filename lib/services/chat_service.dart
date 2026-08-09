@@ -17,9 +17,24 @@ class ChatService {
     return _messagesRef.orderBy('createdAt', descending: false).snapshots();
   }
 
+  // Detects whether the user's message is Vietnamese or English based on
+  // Vietnamese diacritics. This is a lightweight heuristic — no external
+  // language-detection package is used, so it isn't 100% accurate for very
+  // short or ambiguous messages, but it works well for normal chat text.
+  static final RegExp _vietnameseDiacritics = RegExp(
+    r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ'
+    r'ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
+  );
+
+  String _detectLanguage(String text) {
+    return _vietnameseDiacritics.hasMatch(text) ? 'vi' : 'en';
+  }
+
   Future<void> sendUserMessage(String text) async {
     final String message = text.trim();
     if (message.isEmpty) return;
+
+    final String language = _detectLanguage(message);
 
     await _messagesRef.add({
       'text': message,
@@ -31,12 +46,14 @@ class ChatService {
     List<String> productIds = [];
 
     try {
-      final result = await askAI(message);
+      final result = await askAI(message, language);
       botReplyText = result.text;
       productIds = result.productIds;
     } catch (e) {
       print('REAL ERROR: $e');
-      botReplyText = 'Xin lỗi, chatbot đang gặp sự cố. Vui lòng thử lại sau.';
+      botReplyText = language == 'vi'
+          ? 'Xin lỗi, chatbot đang gặp sự cố. Vui lòng thử lại sau.'
+          : 'Sorry, the chatbot is having an issue. Please try again later.';
     }
 
     await _messagesRef.add({
@@ -60,7 +77,31 @@ class ChatService {
     }).toList();
   }
 
-  Future<_AIResult> askAI(String message) async {
+  String _buildSystemPrompt(String catalogText, String language) {
+    final String languageInstruction = language == 'vi'
+        ? 'Khách hàng đang nhắn tin bằng tiếng Việt. Hãy trả lời bằng tiếng Việt, lịch sự và như một nhân viên bán hàng.'
+        : 'The customer is messaging in English. Reply in English, politely, like a sales associate.';
+
+    return '''
+Bạn là trợ lý bán hàng cho cửa hàng Gucci. / You are a sales assistant for a Gucci store.
+
+$languageInstruction
+
+Dưới đây là danh sách sản phẩm hiện có (id, tên, giá, danh mục). Chỉ đề xuất các sản phẩm có trong danh sách này, không bịa sản phẩm không có:
+Below is the current product catalog (id, name, price, category). Only recommend products from this list, never invent products that aren't here:
+$catalogText
+
+QUAN TRỌNG - định dạng bắt buộc / IMPORTANT - required format:
+Sau khi trả lời khách hàng bình thường, luôn thêm một dòng cuối cùng đúng theo định dạng:
+After your normal reply to the customer, always add one final line in exactly this format:
+PRODUCT_IDS: id1,id2
+(liệt kê các id sản phẩm bạn vừa giới thiệu, cách nhau bằng dấu phẩy / list the ids of the products you just recommended, comma-separated)
+Nếu không giới thiệu sản phẩm cụ thể nào, hãy viết / If you didn't recommend any specific product, write: PRODUCT_IDS: none
+Không thêm nội dung nào sau dòng PRODUCT_IDS. / Do not add anything after the PRODUCT_IDS line.
+''';
+  }
+
+  Future<_AIResult> askAI(String message, String language) async {
     if (apiKey.isEmpty) {
       throw Exception(
         'GROQ_API_KEY is not configured. Run the app with: flutter run --dart-define=GROQ_API_KEY=your_key',
@@ -73,20 +114,7 @@ class ChatService {
             '- id: ${p['id']}, name: ${p['name']}, price: \$${p['price']}, category: ${p['category']}')
         .join('\n');
 
-    final systemPrompt = '''
-Bạn là trợ lý bán hàng cho cửa hàng Gucci.
-
-- Trả lời bằng tiếng Việt, lịch sự và như một nhân viên bán hàng.
-- Dưới đây là danh sách sản phẩm hiện có (id, tên, giá, danh mục). Chỉ đề xuất các sản phẩm có trong danh sách này, không bịa sản phẩm không có:
-$catalogText
-
-QUAN TRỌNG - định dạng bắt buộc:
-Sau khi trả lời khách hàng bình thường, luôn thêm một dòng cuối cùng đúng theo định dạng:
-PRODUCT_IDS: id1,id2
-(liệt kê các id sản phẩm bạn vừa giới thiệu, cách nhau bằng dấu phẩy)
-Nếu không giới thiệu sản phẩm cụ thể nào, hãy viết: PRODUCT_IDS: none
-Không thêm nội dung nào sau dòng PRODUCT_IDS.
-''';
+    final systemPrompt = _buildSystemPrompt(catalogText, language);
 
     final response = await http.post(
       Uri.parse('https://api.groq.com/openai/v1/chat/completions'),

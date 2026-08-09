@@ -4,31 +4,12 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 
 class OrderHistoryPage extends StatelessWidget {
   const OrderHistoryPage({super.key});
 
-  String _formatPrice(num value) {
-    final usdAmount = value / 26300;
-    final cents = (usdAmount * 100).round();
-    final whole = cents ~/ 100;
-    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
-    final digits = whole.toString();
-    final buffer = StringBuffer();
-
-    for (int index = 0; index < digits.length; index++) {
-      final positionFromRight = digits.length - index;
-      buffer.write(digits[index]);
-
-      if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-
-    return '\$${buffer.toString()}.$fraction';
-  }
-
-  String _formatDate(dynamic value) {
+  String _formatDate(dynamic value, AppStrings s) {
     DateTime? date;
 
     if (value is Timestamp) {
@@ -38,7 +19,7 @@ class OrderHistoryPage extends StatelessWidget {
     }
 
     if (date == null) {
-      return 'Processing';
+      return s.statusPending == s.statusPending ? (s.locale.languageCode == 'vi' ? 'Đang xử lý' : 'Processing') : 'Processing';
     }
 
     String twoDigits(int number) {
@@ -61,19 +42,19 @@ class OrderHistoryPage extends StatelessWidget {
     }
   }
 
-  String _statusLabel(String status) {
+  String _statusLabel(String status, AppStrings s) {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return 'Confirmed';
+        return s.statusConfirmed;
       case 'shipping':
-        return 'Shipping';
+        return s.statusShipping;
       case 'completed':
-        return 'Completed';
+        return s.statusCompleted;
       case 'cancelled':
-        return 'Cancelled';
+        return s.statusCancelled;
       case 'pending':
       default:
-        return 'Pending';
+        return s.statusPending;
     }
   }
 
@@ -111,93 +92,100 @@ class OrderHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) {
+        final s = AppStrings(locale);
+        final user = FirebaseAuth.instance.currentUser;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text(
-          'MY ORDERS',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            elevation: 0,
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.black),
+            title: Text(
+              s.myOrdersTitle,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
           ),
-        ),
-      ),
-      body: user == null
-          ? _buildMessage(
-              icon: Icons.lock_outline,
-              title: 'Sign in required',
-              message: 'Please sign in to view your orders.',
-            )
-          : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
-                  .collection('orders')
-                  .where('userId', isEqualTo: user.uid)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return _buildMessage(
-                    icon: Icons.error_outline,
-                    title: 'Unable to load orders',
-                    message: snapshot.error.toString(),
-                  );
-                }
+          body: user == null
+              ? _buildMessage(
+                  icon: Icons.lock_outline,
+                  title: s.signInRequired,
+                  message: s.signInToViewOrders,
+                )
+              : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('userId', isEqualTo: user.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return _buildMessage(
+                        icon: Icons.error_outline,
+                        title: s.unableToLoadOrders,
+                        message: snapshot.error.toString(),
+                      );
+                    }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.black),
-                  );
-                }
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      );
+                    }
 
-                final documents = [...?snapshot.data?.docs];
+                    final documents = [...?snapshot.data?.docs];
 
-                documents.sort((first, second) {
-                  final firstDate = first.data()['createdAt'];
-                  final secondDate = second.data()['createdAt'];
+                    documents.sort((first, second) {
+                      final firstDate = first.data()['createdAt'];
+                      final secondDate = second.data()['createdAt'];
 
-                  final firstMilliseconds = firstDate is Timestamp
-                      ? firstDate.millisecondsSinceEpoch
-                      : 0;
-                  final secondMilliseconds = secondDate is Timestamp
-                      ? secondDate.millisecondsSinceEpoch
-                      : 0;
+                      final firstMilliseconds = firstDate is Timestamp
+                          ? firstDate.millisecondsSinceEpoch
+                          : 0;
+                      final secondMilliseconds = secondDate is Timestamp
+                          ? secondDate.millisecondsSinceEpoch
+                          : 0;
 
-                  return secondMilliseconds.compareTo(firstMilliseconds);
-                });
+                      return secondMilliseconds.compareTo(firstMilliseconds);
+                    });
 
-                if (documents.isEmpty) {
-                  return _buildMessage(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'No orders yet',
-                    message: 'Your completed purchases will appear here.',
-                  );
-                }
+                    if (documents.isEmpty) {
+                      return _buildMessage(
+                        icon: Icons.receipt_long_outlined,
+                        title: s.noOrdersYet,
+                        message: s.completedPurchasesAppearHere,
+                      );
+                    }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                  itemCount: documents.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) {
-                    final document = documents[index];
-                    final data = document.data();
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                      itemCount: documents.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final document = documents[index];
+                        final data = document.data();
 
-                    return _buildOrderCard(
-                      context: context,
-                      orderId: (data['orderId'] ?? document.id).toString(),
-                      data: data,
+                        return _buildOrderCard(
+                          context: context,
+                          orderId: (data['orderId'] ?? document.id).toString(),
+                          data: data,
+                          s: s,
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
+        );
+      },
     );
   }
 
@@ -205,6 +193,7 @@ class OrderHistoryPage extends StatelessWidget {
     required BuildContext context,
     required String orderId,
     required Map<String, dynamic> data,
+    required AppStrings s,
   }) {
     final rawItems = data['items'];
     final items = rawItems is List
@@ -234,6 +223,7 @@ class OrderHistoryPage extends StatelessWidget {
           orderId: orderId,
           data: data,
           items: items,
+          s: s,
         );
       },
       child: Container(
@@ -256,7 +246,7 @@ class OrderHistoryPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Order #${_shortOrderId(orderId)}',
+                    s.orderNumberLabel(_shortOrderId(orderId)),
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -273,7 +263,7 @@ class OrderHistoryPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _statusLabel(status),
+                    _statusLabel(status, s),
                     style: TextStyle(
                       color: _statusForeground(status),
                       fontSize: 12,
@@ -285,15 +275,15 @@ class OrderHistoryPage extends StatelessWidget {
             ),
             const SizedBox(height: 7),
             Text(
-              _formatDate(data['createdAt']),
+              _formatDate(data['createdAt'], s),
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
             const SizedBox(height: 14),
-            if (items.isNotEmpty) _buildProductPreview(items.first),
+            if (items.isNotEmpty) _buildProductPreview(items.first, s),
             if (items.length > 1) ...[
               const SizedBox(height: 8),
               Text(
-                '+ ${items.length - 1} more product${items.length > 2 ? 's' : ''}',
+                s.moreProductsLabel(items.length - 1),
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
@@ -304,13 +294,13 @@ class OrderHistoryPage extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '$totalItems item${totalItems == 1 ? '' : 's'}',
+                  s.orderItemsCount(totalItems),
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
                 const Spacer(),
-                const Text('Total: ', style: TextStyle(fontSize: 13)),
+                Text(s.orderTotalPrefix, style: const TextStyle(fontSize: 13)),
                 Text(
-                  _formatPrice(totalPrice),
+                  s.formatPrice(totalPrice),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -330,7 +320,7 @@ class OrderHistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProductPreview(Map<String, dynamic> item) {
+  Widget _buildProductPreview(Map<String, dynamic> item, AppStrings s) {
     final imageBytes = _decodeImage((item['image'] ?? '').toString());
     final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
     final price = item['price'] is num ? item['price'] as num : 0;
@@ -370,7 +360,7 @@ class OrderHistoryPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                (item['name'] ?? 'Product').toString(),
+                (item['name'] ?? s.defaultProductName).toString(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -381,7 +371,7 @@ class OrderHistoryPage extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '${_formatPrice(price)}  ×  $quantity',
+                '${s.formatPrice(price)}  ×  $quantity',
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
@@ -396,6 +386,7 @@ class OrderHistoryPage extends StatelessWidget {
     required String orderId,
     required Map<String, dynamic> data,
     required List<Map<String, dynamic>> items,
+    required AppStrings s,
   }) async {
     final totalPrice = data['totalPrice'] is num
         ? data['totalPrice'] as num
@@ -431,10 +422,10 @@ class OrderHistoryPage extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Order Details',
-                          style: TextStyle(
+                          s.orderDetailsTitle,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -454,13 +445,13 @@ class OrderHistoryPage extends StatelessWidget {
                     controller: scrollController,
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
                     children: [
-                      _detailRow('Order ID', orderId),
-                      _detailRow('Order date', _formatDate(data['createdAt'])),
-                      _detailRow('Status', _statusLabel(status)),
+                      _detailRow(s.orderIdLabel, orderId),
+                      _detailRow(s.orderDateLabel, _formatDate(data['createdAt'], s)),
+                      _detailRow(s.statusFieldLabel, _statusLabel(status, s)),
                       const SizedBox(height: 18),
-                      const Text(
-                        'Products',
-                        style: TextStyle(
+                      Text(
+                        s.productsLabel,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -469,22 +460,22 @@ class OrderHistoryPage extends StatelessWidget {
                       ...items.map(
                         (item) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildDetailProduct(item),
+                          child: _buildDetailProduct(item, s),
                         ),
                       ),
                       const Divider(height: 28),
                       Row(
                         children: [
-                          const Text(
-                            'Order total',
-                            style: TextStyle(
+                          Text(
+                            s.orderTotalLabel,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const Spacer(),
                           Text(
-                            _formatPrice(totalPrice),
+                            s.formatPrice(totalPrice),
                             style: const TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
@@ -503,7 +494,7 @@ class OrderHistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailProduct(Map<String, dynamic> item) {
+  Widget _buildDetailProduct(Map<String, dynamic> item, AppStrings s) {
     final imageBytes = _decodeImage((item['image'] ?? '').toString());
     final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
     final subtotal = item['subtotal'] is num
@@ -540,14 +531,14 @@ class OrderHistoryPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (item['name'] ?? 'Product').toString(),
+                  (item['name'] ?? s.defaultProductName).toString(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Quantity: $quantity',
+                  s.quantityShortLabel(quantity),
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
@@ -555,7 +546,7 @@ class OrderHistoryPage extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            _formatPrice(subtotal),
+            s.formatPrice(subtotal),
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],

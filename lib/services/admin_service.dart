@@ -1,9 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../l10n/app_strings.dart'; 
+
 class AdminService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // No BuildContext is available in a static service, so we read the
+  // current locale directly from LocaleController instead of AppStrings.of(context).
+  static AppStrings get _s => AppStrings(LocaleController.locale.value);
+
   /// Admin login
   /// Only accounts with a UID in the `admins` collection
   /// are allowed to sign in to the Admin Panel.
@@ -20,7 +27,7 @@ class AdminService {
       final user = credential.user;
 
       if (user == null) {
-        return 'Authentication failed.';
+        return _s.authenticationFailed;
       }
 
       // Check whether the UID exists in the admins collection
@@ -29,31 +36,32 @@ class AdminService {
 
       if (!adminDoc.exists) {
         await _auth.signOut();
-        return 'You are not an administrator.';
+        return _s.notAnAdministrator;
       }
 
       return null;
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
-          return 'No account found with this email.';
+          return _s.noAccountFoundEmail;
 
         case 'wrong-password':
-          return 'Incorrect password.';
+          return _s.incorrectPassword;
 
         case 'invalid-email':
-          return 'Invalid email address.';
+          return _s.invalidEmailAddress;
 
         case 'invalid-credential':
-          return 'Incorrect email or password.';
+          return _s.incorrectEmailOrPassword;
 
         default:
-          return e.message ?? 'Admin sign in failed.';
+          return e.message ?? _s.adminSignInFailed;
       }
     } catch (e) {
-      return 'An error occurred: $e';
+      return _s.errorOccurredWith(e.toString());
     }
   }
+
   /// Check whether the current user is an Admin
   static Future<bool> isCurrentUserAdmin() async {
     final user = _auth.currentUser;
@@ -70,6 +78,7 @@ class AdminService {
       return false;
     }
   }
+
   /// Log out
   static Future<void> signOutAdmin() async {
     await _auth.signOut();
@@ -79,31 +88,32 @@ class AdminService {
   static bool isSignedIn() {
     return _auth.currentUser != null;
   }
+
   static Future<String?> signIn({
-  required String email,
-  required String password,
-}) async {
-  try {
-    await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
-    );
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
 
-    return null;
-  } on FirebaseAuthException catch (e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'No account found with this email.';
+      return null;
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          return _s.noAccountFoundEmail;
 
-      case 'wrong-password':
-        return 'Incorrect password.';
+        case 'wrong-password':
+          return _s.incorrectPassword;
 
-      case 'invalid-email':
-        return 'Invalid email address.';
+        case 'invalid-email':
+          return _s.invalidEmailAddress;
 
-      default:
-        return e.message;
+        default:
+          return e.message;
+      }
     }
   }
-}
 }

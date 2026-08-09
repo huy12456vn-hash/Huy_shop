@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import 'product_detail_page.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import '../../l10n/app_strings.dart';
+
 class WishlistPage extends StatelessWidget {
   const WishlistPage({super.key});
 
@@ -24,6 +26,7 @@ class WishlistPage extends StatelessWidget {
   Future<void> _removeFromWishlist(
     BuildContext context,
     String wishlistDocumentId,
+    AppStrings s,
   ) async {
     try {
       await FirebaseFirestore.instance
@@ -36,9 +39,9 @@ class WishlistPage extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Item removed from wishlist'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(s.itemRemovedFromWishlistShort),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (error) {
@@ -48,171 +51,150 @@ class WishlistPage extends StatelessWidget {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Unable to remove item: $error')));
+      ).showSnackBar(SnackBar(content: Text(s.unableToRemoveItem(error.toString()))));
     }
-  }
-
-  String _formatPrice(dynamic value) {
-    if (value == null) {
-      return '\$0.00';
-    }
-
-    final input = value.toString();
-    final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
-    final parsed = normalized.isEmpty
-        ? 0
-        : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-    final usdAmount = parsed / 26300;
-    final cents = (usdAmount * 100).round();
-    final whole = cents ~/ 100;
-    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
-    final digits = whole.toString();
-    final buffer = StringBuffer();
-
-    for (int index = 0; index < digits.length; index++) {
-      final positionFromRight = digits.length - index;
-      buffer.write(digits[index]);
-      if (positionFromRight > 1 && positionFromRight % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-
-    return '\$${buffer.toString()}.$fraction';
   }
 
   @override
   Widget build(BuildContext context) {
-    final User? currentUser = FirebaseAuth.instance.currentUser;
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) {
+        final s = AppStrings(locale);
+        final User? currentUser = FirebaseAuth.instance.currentUser;
 
-    if (currentUser == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(30),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person_outline, size: 75, color: Colors.black38),
-                SizedBox(height: 18),
-                Text(
-                  'You are not signed in',
-                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Please sign in to view your favorite products.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black54,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('wishlists')
-            .where('userId', isEqualTo: currentUser.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.black),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
+        if (currentUser == null) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F5F5),
+            body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(30),
-                child: Text(
-                  'Unable to load wishlist.\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.person_outline, size: 75, color: Colors.black38),
+                    const SizedBox(height: 18),
+                    Text(
+                      s.notSignedInTitle,
+                      style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      s.signInToViewFavorites,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          }
+            ),
+          );
+        }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyWishlist();
-          }
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('wishlists')
+                .where('userId', isEqualTo: currentUser.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.black),
+                );
+              }
 
-          final wishlistDocuments = [...snapshot.data!.docs];
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(30),
+                    child: Text(
+                      s.unableToLoadWishlist(snapshot.error.toString()),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                );
+              }
 
-          wishlistDocuments.sort((first, second) {
-            final firstTime = first.data()['createdAt'] as Timestamp?;
-            final secondTime = second.data()['createdAt'] as Timestamp?;
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return _buildEmptyWishlist(s);
+              }
 
-            if (firstTime == null && secondTime == null) {
-              return 0;
-            }
+              final wishlistDocuments = [...snapshot.data!.docs];
 
-            if (firstTime == null) {
-              return 1;
-            }
+              wishlistDocuments.sort((first, second) {
+                final firstTime = first.data()['createdAt'] as Timestamp?;
+                final secondTime = second.data()['createdAt'] as Timestamp?;
 
-            if (secondTime == null) {
-              return -1;
-            }
+                if (firstTime == null && secondTime == null) {
+                  return 0;
+                }
 
-            return secondTime.compareTo(firstTime);
-          });
+                if (firstTime == null) {
+                  return 1;
+                }
 
-          return MasonryGridView.count(
-  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-  crossAxisCount: 2,
-  mainAxisSpacing: 14,
-  crossAxisSpacing: 14,
-  itemCount: wishlistDocuments.length,
-  itemBuilder: (context, index) {
-    final document = wishlistDocuments[index];
-    final product = document.data();
+                if (secondTime == null) {
+                  return -1;
+                }
 
-    return _buildWishlistCard(
-      context: context,
-      wishlistDocumentId: document.id,
-      product: product,
-    );
-  },
-);
-        },
-      ),
+                return secondTime.compareTo(firstTime);
+              });
+
+              return MasonryGridView.count(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                itemCount: wishlistDocuments.length,
+                itemBuilder: (context, index) {
+                  final document = wishlistDocuments[index];
+                  final product = document.data();
+
+                  return _buildWishlistCard(
+                    context: context,
+                    wishlistDocumentId: document.id,
+                    product: product,
+                    s: s,
+                  );
+                },
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildEmptyWishlist() {
-    return const Center(
+  Widget _buildEmptyWishlist(AppStrings s) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.favorite_border, size: 85, color: Colors.black26),
-            SizedBox(height: 20),
+            const Icon(Icons.favorite_border, size: 85, color: Colors.black26),
+            const SizedBox(height: 20),
             Text(
-              'Your wishlist is empty',
+              s.wishlistEmptyTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.3,
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(
-              'Tap the heart icon to save your favorite products.',
+              s.wishlistEmptySubtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: Colors.black54,
                 height: 1.5,
@@ -228,8 +210,9 @@ class WishlistPage extends StatelessWidget {
     required BuildContext context,
     required String wishlistDocumentId,
     required Map<String, dynamic> product,
+    required AppStrings s,
   }) {
-    final String productName = (product['name'] ?? 'Untitled').toString();
+    final String productName = (product['name'] ?? s.untitledProduct).toString();
 
     final dynamic productPrice = product['price'] ?? 0;
 
@@ -316,9 +299,9 @@ class WishlistPage extends StatelessWidget {
                     ),
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      tooltip: 'Remove from Wishlist',
+                      tooltip: s.removeFromWishlistTooltip,
                       onPressed: () {
-                        _removeFromWishlist(context, wishlistDocumentId);
+                        _removeFromWishlist(context, wishlistDocumentId, s);
                       },
                       icon: const Icon(
                         Icons.favorite,
@@ -347,7 +330,7 @@ class WishlistPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _formatPrice(productPrice),
+                    s.formatPrice(productPrice),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13, color: Colors.grey),

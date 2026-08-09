@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import'../pages/product_detail_page.dart';
 import '../../services/chat_service.dart';
-
+import '../../l10n/app_strings.dart';
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
@@ -49,7 +49,7 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> message) {
+  Widget _buildMessageBubble(Map<String, dynamic> message, AppStrings s) {
     final bool isUser = message['sender'] == 'user';
     final String text = (message['text'] ?? '').toString();
     final List<dynamic> productIds = message['productIds'] ?? [];
@@ -90,13 +90,13 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
           if (!isUser && productIds.isNotEmpty)
-            _buildProductRow(productIds.map((e) => e.toString()).toList()),
+            _buildProductRow(productIds.map((e) => e.toString()).toList(), s),
         ],
       ),
     );
   }
 
-  Widget _buildProductRow(List<String> productIds) {
+  Widget _buildProductRow(List<String> productIds, AppStrings s) {
     return SizedBox(
       height: 190,
       child: ListView.builder(
@@ -115,7 +115,7 @@ class _ChatPageState extends State<ChatPage> {
               }
               final data = snapshot.data!.data()!;
               final product = ProductModel.fromMap(productIds[index], data);
-              return _buildProductCard(product);
+              return _buildProductCard(product, s);
             },
           );
         },
@@ -123,7 +123,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Widget _buildProductCard(ProductModel product) {
+  Widget _buildProductCard(ProductModel product, AppStrings s) {
     Widget imageWidget;
     if (product.image.isNotEmpty) {
       try {
@@ -180,7 +180,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatPriceShort(product.price),
+                    s.formatPrice(product.price),
                     style: const TextStyle(fontSize: 12, color: Colors.black87),
                   ),
                 ],
@@ -192,102 +192,90 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  String _formatPriceShort(String price) {
-    final normalized = price.replaceAll(RegExp(r'[^0-9,.-]'), '');
-    if (normalized.isEmpty) return price;
-
-    final parsed = num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
-    final usdAmount = parsed / 26300;
-    final cents = (usdAmount * 100).round();
-    final whole = cents ~/ 100;
-    final fraction = (cents % 100).abs().toString().padLeft(2, '0');
-    final digits = whole.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < digits.length; i++) {
-      final posFromRight = digits.length - i;
-      buffer.write(digits[i]);
-      if (posFromRight > 1 && posFromRight % 3 == 1) buffer.write(',');
-    }
-    return '\$${buffer.toString()}.$fraction';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F3EE),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F1F1F),
-        foregroundColor: Colors.white,
-        title: const Text('Hỗ trợ chat Gucci'),
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _chatService.getMessagesStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final messages = snapshot.data?.docs ?? [];
-                if (messages.isEmpty) {
-                  return const Center(
-                    child: Text('Bắt đầu trò chuyện!'),
-                  );
-                }
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController.locale,
+      builder: (context, locale, _) {
+        final s = AppStrings(locale);
 
-                WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
-                return ListView.separated(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  itemCount: messages.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) =>
-                      _buildMessageBubble(messages[index].data()),
-                );
-              },
-            ),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF7F3EE),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF1F1F1F),
+            foregroundColor: Colors.white,
+            title: Text(s.chatSupportTitle),
+            elevation: 0,
           ),
-          Container(
-            padding: EdgeInsets.fromLTRB(
-              12, 8, 12, 12 + MediaQuery.of(context).padding.bottom,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.08), blurRadius: 8, offset: Offset(0, -2))],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    minLines: 1,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: 'Nhập tin nhắn...', 
-                      filled: true,
-                      fillColor: const Color(0xFFF4F4F4),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          body: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _chatService.getMessagesStream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final messages = snapshot.data?.docs ?? [];
+                    if (messages.isEmpty) {
+                      return const Center(
+                        child: Text('Bắt đầu trò chuyện!'),
+                      );
+                    }
+
+                    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+                    return ListView.separated(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      itemCount: messages.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) =>
+                          _buildMessageBubble(messages[index].data(), s),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.fromLTRB(
+                  12, 8, 12, 12 + MediaQuery.of(context).padding.bottom,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.08), blurRadius: 8, offset: Offset(0, -2))],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        minLines: 1,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: 'Nhập tin nhắn...', 
+                          filled: true,
+                          fillColor: const Color(0xFFF4F4F4),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      onPressed: _isSending ? null : _sendMessage,
+                      icon: _isSending
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.send_rounded),
+                      style: IconButton.styleFrom(backgroundColor: const Color(0xFF1F1F1F), foregroundColor: Colors.white, fixedSize: const Size(48, 48)),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  onPressed: _isSending ? null : _sendMessage,
-                  icon: _isSending
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.send_rounded),
-                  style: IconButton.styleFrom(backgroundColor: const Color(0xFF1F1F1F), foregroundColor: Colors.white, fixedSize: const Size(48, 48)),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
