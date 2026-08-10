@@ -111,8 +111,23 @@ class CartItemModel {
       return value.toDouble();
     }
 
-    final String normalizedValue = value
-        .toString()
+    final String raw = value.toString().trim();
+
+    // Thử parse trực tiếp trước — xử lý đúng các chuỗi số thuần,
+    // kể cả có dấu chấm thập phân (vd "8900000.0" từ Firestore
+    // khi trường price được lưu dạng double rồi gọi .toString()).
+    // Nếu không làm bước này trước, dấu chấm thập phân sẽ bị hiểu nhầm
+    // thành dấu phân cách hàng nghìn ở bước dưới và bị xóa,
+    // khiến giá trị bị nhân lên gấp 10 lần (8900000.0 -> 89000000).
+    final double? direct = double.tryParse(raw);
+    if (direct != null) {
+      return direct;
+    }
+
+    // Chỉ khi parse trực tiếp thất bại (chuỗi đã format kiểu tiền tệ,
+    // vd "8.900.000đ", "8,900,000 VND"...) mới bóc tách ký hiệu
+    // và dấu phân cách hàng nghìn.
+    final String normalizedValue = raw
         .replaceAll('VND', '')
         .replaceAll('₫', '')
         .replaceAll('\$', '')

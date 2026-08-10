@@ -29,12 +29,31 @@ class AppStrings {
     return AppStrings(LocaleController.locale.value);
   }
   bool get _isVi => locale.languageCode == 'vi';
+
+/// Trả về giá trị số thực từ [value].
+/// - Nếu [value] đã là num (int/double) — dùng trực tiếp, KHÔNG ép về
+///   chuỗi rồi tự bóc tách, vì double.toString() có thể tạo ra dấu chấm
+///   thập phân (vd "8900000.0") dễ bị hiểu nhầm thành dấu phân cách
+///   hàng nghìn ở bước xử lý chuỗi bên dưới, gây sai lệch giá trị x10.
+/// - Chỉ khi [value] là String (giá đã format như "8.900.000" hoặc
+///   "8,900,000.50") mới bóc tách dấu phân cách hàng nghìn/thập phân.
+num _parseAmountValue(dynamic value) {
+  if (value is num) {
+    return value;
+  }
+
+  final String input = value?.toString() ?? '0';
+  final String normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
+
+  if (normalized.isEmpty) {
+    return 0;
+  }
+
+  return num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+}
+
 String formatPrice(dynamic value) {
-  final input = value?.toString() ?? '0';
-  final normalized = input.replaceAll(RegExp(r'[^0-9,.-]'), '');
-  final num parsed = normalized.isEmpty
-      ? 0
-      : num.tryParse(normalized.replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+  final num parsed = _parseAmountValue(value);
 
   if (_isVi) {
     final int whole = parsed.round();
